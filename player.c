@@ -38,15 +38,18 @@ void UpdatePlayer(Player *player, const BubbleGrid *grid) {
         // Fırlatma
         if (IsKeyPressed(KEY_SPACE)) {
             player->shooting = 1;
+            float rad = player->angle * (PI / 180.0f);
+            player->velocity.x = cosf(rad) * BUBBLE_SPEED;
+            player->velocity.y = -sinf(rad) * BUBBLE_SPEED;
         }
     } else {
         // Fırlatılan balonun hareketi
-        float rad = player->angle * (PI / 180.0f);
-        player->bubble.pos.x += cosf(rad) * BUBBLE_SPEED;
-        player->bubble.pos.y -= sinf(rad) * BUBBLE_SPEED;
+        player->bubble.pos.x += player->velocity.x;
+        player->bubble.pos.y += player->velocity.y;
         // Kenarlardan sekme
         if (player->bubble.pos.x < BUBBLE_RADIUS || player->bubble.pos.x > 800 - BUBBLE_RADIUS) {
-            player->angle = 180.0f - player->angle;
+            player->velocity.x *= -1;
+            player->bubble.pos.x = Clamp(player->bubble.pos.x, BUBBLE_RADIUS, 800 - BUBBLE_RADIUS);
         }
     }
 }

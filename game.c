@@ -22,7 +22,16 @@ void UpdateGame(Game *game, GameState *state) {
         return;
     }
     UpdatePlayer(&game->player, &game->grid);
-    // TODO: Balon çarpışma ve patlatma, skor, seviye ilerleme
+    // Fırlatılan top çarptıysa işlemleri yap
+    if (game->player.shooting) {
+        if (CheckBubbleCollision(&game->player.bubble, &game->grid)) {
+            PlaceBubble(&game->player.bubble, &game->grid);
+            int popped = PopConnectedBubbles(&game->grid);
+            if (popped >= 3) game->score += popped * 10;
+            DropFloatingBubbles(&game->grid, &game->score);
+            NextBubble(&game->player);
+        }
+    }
     if (IsGridFull(&game->grid)) {
         game->isGameOver = 1;
     }

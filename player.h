@@ -9,6 +9,7 @@ typedef struct {
     float angle;      // Fırlatma açısı (derece)
     Bubble bubble;    // Fırlatılacak balon
     int shooting;     // Balon fırlatılıyor mu?
+    Vector2 velocity; // Balonun hareket vektörü
 } Player;
 
 void InitPlayer(Player *player);
