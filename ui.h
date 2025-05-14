@@ -5,8 +5,8 @@
 void DrawMenuUI(void);
 int UpdateMenuUI(void);
 
-// Skor ve seviye gösterimi
-void DrawScoreUI(int score, int level);
+// Skor gösterimi
+void DrawScoreUI(int score);
 
 // Oyun duraklatma arayüzü
 void DrawPauseUI(void);

@@ -25,6 +25,7 @@ void NextBubble(Player *player) {
     player->bubble.active = 1;
     player->bubble.color = (BubbleColor)(rand() % BUBBLE_COLORS);
     player->bubble.pos = player->pos;
+    player->velocity = (Vector2){0, 0};
 }
 
 // Oyuncu kontrolü ve balon fırlatma
@@ -41,6 +42,7 @@ void UpdatePlayer(Player *player, const BubbleGrid *grid) {
             float rad = player->angle * (PI / 180.0f);
             player->velocity.x = cosf(rad) * BUBBLE_SPEED;
             player->velocity.y = -sinf(rad) * BUBBLE_SPEED;
+            player->bubble.pos = player->pos;
         }
     } else {
         // Fırlatılan balonun hareketi

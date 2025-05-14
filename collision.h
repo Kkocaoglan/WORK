@@ -12,7 +12,7 @@ void PlaceBubble(Bubble *bubble, BubbleGrid *grid, int *outRow, int *outCol);
 // Bağlantılı balonları verilen konumdan DFS/BFS ile bulup patlatır, patlayan balon sayısını döndürür
 int PopConnectedBubbles(BubbleGrid *grid, int row, int col);
 
-// Tavana bağlı olmayan balonları düşürür, düşen balon sayısı kadar puan eklenebilir
-void DropFloatingBubbles(BubbleGrid *grid, int *score);
+// Tavana bağlı olmayan balonları düşürür, düşen balon sayısını döndürür
+int DropFloatingBubbles(BubbleGrid *grid);
 
 #endif // COLLISION_H 

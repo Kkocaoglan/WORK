@@ -15,10 +15,10 @@ int UpdateMenuUI(void) {
 }
 
 // Skor ve seviye gösterimi
-void DrawScoreUI(int score, int level) {
+void DrawScoreUI(int score) {
     char buf[64];
-    sprintf(buf, "Skor: %d  Seviye: %d", score, level);
-    DrawText(buf, 20, 20, 24, DARKGRAY);
+    sprintf(buf, "Skor: %d", score);
+    DrawText(buf, 20, 20, 32, DARKGRAY);
 }
 
 // Duraklatma ekranı çizimi

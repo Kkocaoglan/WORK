@@ -129,7 +129,7 @@ int PopConnectedBubbles(BubbleGrid *grid, int row, int col) {
 }
 
 // Tavana bağlı olmayan balonları BFS ile bulup düşürür
-void DropFloatingBubbles(BubbleGrid *grid, int *score) {
+int DropFloatingBubbles(BubbleGrid *grid) {
     int visited[GRID_ROWS][GRID_COLS] = {0};
     // Tavana bağlı olanları işaretle
     for (int c = 0; c < GRID_COLS; c++) {
@@ -167,5 +167,5 @@ void DropFloatingBubbles(BubbleGrid *grid, int *score) {
             }
         }
     }
-    if (score) *score += dropped * 20;
+    return dropped;
 } 
