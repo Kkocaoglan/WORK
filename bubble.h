@@ -4,8 +4,8 @@
 #include "raylib.h"
 
 // Grid boyutları ve balon yarıçapı
-#define GRID_ROWS 12
-#define GRID_COLS 8
+#define GRID_ROWS 8
+#define GRID_COLS 19
 #define BUBBLE_RADIUS 20
 #define BUBBLE_COLORS 5
 

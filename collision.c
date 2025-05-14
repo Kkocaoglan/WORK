@@ -21,28 +21,80 @@ int CheckBubbleCollision(const Bubble *bubble, const BubbleGrid *grid) {
     return 0;
 }
 
-// Balonu gridde uygun yere yerleştirir (en yakın boş hücreye)
-void PlaceBubble(Bubble *bubble, BubbleGrid *grid, int *outRow, int *outCol) {
-    int minR = 0, minC = 0;
+// Yardımcı: Ekran koordinatından grid koordinatına yaklaşık dönüşüm
+static void FindNearestGridCell(BubbleGrid *grid, Vector2 pos, int *outRow, int *outCol) {
+    int bestR = 0, bestC = 0;
     float minDist = 1e9f;
     for (int r = 0; r < GRID_ROWS; r++) {
         for (int c = 0; c < GRID_COLS; c++) {
-            if (!grid->bubbles[r][c].active) {
-                float dx = bubble->pos.x - grid->bubbles[r][c].pos.x;
-                float dy = bubble->pos.y - grid->bubbles[r][c].pos.y;
-                float dist = sqrtf(dx*dx + dy*dy);
-                if (dist < minDist) {
-                    minDist = dist;
-                    minR = r;
-                    minC = c;
-                }
+            float dx = pos.x - grid->bubbles[r][c].pos.x;
+            float dy = pos.y - grid->bubbles[r][c].pos.y;
+            float dist = dx*dx + dy*dy;
+            if (dist < minDist) {
+                minDist = dist;
+                bestR = r;
+                bestC = c;
             }
         }
     }
-    grid->bubbles[minR][minC].active = 1;
-    grid->bubbles[minR][minC].color = bubble->color;
-    if (outRow) *outRow = minR;
-    if (outCol) *outCol = minC;
+    if (outRow) *outRow = bestR;
+    if (outCol) *outCol = bestC;
+}
+
+// Balonu gridde uygun yere yerleştirir, çarpışan balonun komşu boş hücresine veya tavana
+void PlaceBubble(Bubble *bubble, BubbleGrid *grid, int *outRow, int *outCol) {
+    int baseR = 0, baseC = 0;
+    // Eğer tavana çarptıysa, en üst satırda en yakın boş hücreye yerleştir
+    if (bubble->pos.y < grid->bubbles[0][0].pos.y + BUBBLE_RADIUS) {
+        float minDist = 1e9f;
+        int bestC = 0;
+        for (int c = 0; c < GRID_COLS; c++) {
+            if (!grid->bubbles[0][c].active) {
+                float dx = bubble->pos.x - grid->bubbles[0][c].pos.x;
+                float dist = dx*dx;
+                if (dist < minDist) {
+                    minDist = dist;
+                    bestC = c;
+                }
+            }
+        }
+        grid->bubbles[0][bestC].active = 1;
+        grid->bubbles[0][bestC].color = bubble->color;
+        if (outRow) *outRow = 0;
+        if (outCol) *outCol = bestC;
+        return;
+    }
+    // Tavana çarpmadıysa, çarpışan balona en yakın grid hücresini bul
+    FindNearestGridCell(grid, bubble->pos, &baseR, &baseC);
+    // 6 komşuya bak, en yakın boş olanı bul
+    int dr[6] = {-1, -1, 0, 0, 1, 1};
+    int dc_even[6] = {-1, 0, -1, 1, -1, 0};
+    int dc_odd[6]  = {0, 1, -1, 1, 0, 1};
+    int bestR = -1, bestC = -1;
+    float minDist = 1e9f;
+    for (int d = 0; d < 6; d++) {
+        int nr = baseR + dr[d];
+        int nc = baseC + ((baseR % 2 == 0) ? dc_even[d] : dc_odd[d]);
+        if (nr >= 0 && nr < GRID_ROWS && nc >= 0 && nc < GRID_COLS && !grid->bubbles[nr][nc].active) {
+            float dx = bubble->pos.x - grid->bubbles[nr][nc].pos.x;
+            float dy = bubble->pos.y - grid->bubbles[nr][nc].pos.y;
+            float dist = dx*dx + dy*dy;
+            if (dist < minDist) {
+                minDist = dist;
+                bestR = nr;
+                bestC = nc;
+            }
+        }
+    }
+    // Eğer hiç boş komşu yoksa, base hücresine yerleştir (son çare)
+    if (bestR == -1 || bestC == -1) {
+        bestR = baseR;
+        bestC = baseC;
+    }
+    grid->bubbles[bestR][bestC].active = 1;
+    grid->bubbles[bestR][bestC].color = bubble->color;
+    if (outRow) *outRow = bestR;
+    if (outCol) *outCol = bestC;
 }
 
 // DFS ile bağlantılı aynı renkteki balonları bulup patlatır

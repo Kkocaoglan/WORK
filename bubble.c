@@ -15,8 +15,8 @@ Color GetColor(BubbleColor color) {
 
 // Grid başlatılır: İlk 5 satır rastgele balonlarla doldurulur
 void InitBubbleGrid(BubbleGrid *grid) {
-    float x_offset = 800/2 - (GRID_COLS * BUBBLE_RADIUS + BUBBLE_RADIUS/2);
-    float y_offset = 60 + BUBBLE_RADIUS;
+    float x_offset = BUBBLE_RADIUS + 2; // Sol kenardan boşluk
+    float y_offset = BUBBLE_RADIUS + 2; // Üst kenardan boşluk
     for (int r = 0; r < GRID_ROWS; r++) {
         for (int c = 0; c < GRID_COLS; c++) {
             grid->bubbles[r][c].active = (r < 5) ? 1 : 0;
