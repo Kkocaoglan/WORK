@@ -6,11 +6,11 @@
 // Fırlatılan balonun griddeki balonlara çarpıp çarpmadığını kontrol eder
 int CheckBubbleCollision(const Bubble *bubble, const BubbleGrid *grid);
 
-// Balonu gridde uygun yere yerleştirir
-void PlaceBubble(Bubble *bubble, BubbleGrid *grid);
+// Balonu gridde uygun yere yerleştirir, yerleştirilen satır ve sütunu döndürür
+void PlaceBubble(Bubble *bubble, BubbleGrid *grid, int *outRow, int *outCol);
 
-// Bağlantılı balonları DFS/BFS ile bulup patlatır, patlayan balon sayısını döndürür
-int PopConnectedBubbles(BubbleGrid *grid);
+// Bağlantılı balonları verilen konumdan DFS/BFS ile bulup patlatır, patlayan balon sayısını döndürür
+int PopConnectedBubbles(BubbleGrid *grid, int row, int col);
 
 // Tavana bağlı olmayan balonları düşürür, düşen balon sayısı kadar puan eklenebilir
 void DropFloatingBubbles(BubbleGrid *grid, int *score);

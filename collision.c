@@ -22,7 +22,7 @@ int CheckBubbleCollision(const Bubble *bubble, const BubbleGrid *grid) {
 }
 
 // Balonu gridde uygun yere yerleştirir (en yakın boş hücreye)
-void PlaceBubble(Bubble *bubble, BubbleGrid *grid) {
+void PlaceBubble(Bubble *bubble, BubbleGrid *grid, int *outRow, int *outCol) {
     int minR = 0, minC = 0;
     float minDist = 1e9f;
     for (int r = 0; r < GRID_ROWS; r++) {
@@ -41,6 +41,8 @@ void PlaceBubble(Bubble *bubble, BubbleGrid *grid) {
     }
     grid->bubbles[minR][minC].active = 1;
     grid->bubbles[minR][minC].color = bubble->color;
+    if (outRow) *outRow = minR;
+    if (outCol) *outCol = minC;
 }
 
 // DFS ile bağlantılı aynı renkteki balonları bulup patlatır
@@ -51,40 +53,25 @@ static void dfs(BubbleGrid *grid, int r, int c, BubbleColor color, int visited[G
     (*count)++;
     // Altıgen gridde 6 komşu
     int dr[6] = {-1, -1, 0, 0, 1, 1};
-    int dc[6] = {0, 1, -1, 1, 0, 1};
-    if (r % 2 == 0) { dc[1] = 0; dc[5] = -1; }
-    else { dc[2] = 0; dc[3] = 1; }
+    int dc_even[6] = {-1, 0, -1, 1, -1, 0}; // çift satır
+    int dc_odd[6]  = {0, 1, -1, 1, 0, 1};   // tek satır
     for (int d = 0; d < 6; d++) {
-        dfs(grid, r + dr[d], c + dc[d], color, visited, count);
+        int nr = r + dr[d];
+        int nc = c + ((r % 2 == 0) ? dc_even[d] : dc_odd[d]);
+        dfs(grid, nr, nc, color, visited, count);
     }
 }
 
-int PopConnectedBubbles(BubbleGrid *grid) {
+int PopConnectedBubbles(BubbleGrid *grid, int row, int col) {
     int visited[GRID_ROWS][GRID_COLS] = {0};
-    int maxCount = 0, maxR = -1, maxC = -1;
-    // En son eklenen balonu bul
-    for (int r = 0; r < GRID_ROWS; r++) {
-        for (int c = 0; c < GRID_COLS; c++) {
-            if (grid->bubbles[r][c].active && !visited[r][c]) {
-                int count = 0;
-                dfs(grid, r, c, grid->bubbles[r][c].color, visited, &count);
-                if (count >= 3 && count > maxCount) {
-                    maxCount = count;
-                    maxR = r;
-                    maxC = c;
-                }
-            }
-        }
-    }
-    // Patlat
-    if (maxCount >= 3) {
-        memset(visited, 0, sizeof(visited));
-        int dummy = 0;
-        dfs(grid, maxR, maxC, grid->bubbles[maxR][maxC].color, visited, &dummy);
+    int count = 0;
+    BubbleColor color = grid->bubbles[row][col].color;
+    dfs(grid, row, col, color, visited, &count);
+    if (count >= 3) {
         for (int r = 0; r < GRID_ROWS; r++)
             for (int c = 0; c < GRID_COLS; c++)
                 if (visited[r][c]) grid->bubbles[r][c].active = 0;
-        return maxCount;
+        return count;
     }
     return 0;
 }
@@ -104,13 +91,15 @@ void DropFloatingBubbles(BubbleGrid *grid, int *score) {
                 visited[r][cc] = 1;
                 // Altıgen gridde 6 komşu
                 int dr[6] = {-1, -1, 0, 0, 1, 1};
-                int dc[6] = {0, 1, -1, 1, 0, 1};
-                if (r % 2 == 0) { dc[1] = 0; dc[5] = -1; }
-                else { dc[2] = 0; dc[3] = 1; }
+                int dc_even[6] = {-1, 0, -1, 1, -1, 0}; // çift satır
+                int dc_odd[6]  = {0, 1, -1, 1, 0, 1};   // tek satır
                 for (int d = 0; d < 6; d++) {
-                    int nr = r + dr[d], nc = cc + dc[d];
+                    int nr = r + dr[d];
+                    int nc = cc + ((r % 2 == 0) ? dc_even[d] : dc_odd[d]);
                     if (nr >= 0 && nr < GRID_ROWS && nc >= 0 && nc < GRID_COLS && grid->bubbles[nr][nc].active && !visited[nr][nc]) {
-                        queue[back][0] = nr; queue[back][1] = nc; back++;
+                        if (back < GRID_ROWS * GRID_COLS) {
+                            queue[back][0] = nr; queue[back][1] = nc; back++;
+                        }
                     }
                 }
             }

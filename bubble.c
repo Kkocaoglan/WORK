@@ -15,15 +15,15 @@ Color GetColor(BubbleColor color) {
 
 // Grid başlatılır: İlk 5 satır rastgele balonlarla doldurulur
 void InitBubbleGrid(BubbleGrid *grid) {
+    float x_offset = 800/2 - (GRID_COLS * BUBBLE_RADIUS + BUBBLE_RADIUS/2);
+    float y_offset = 60 + BUBBLE_RADIUS;
     for (int r = 0; r < GRID_ROWS; r++) {
         for (int c = 0; c < GRID_COLS; c++) {
             grid->bubbles[r][c].active = (r < 5) ? 1 : 0;
             grid->bubbles[r][c].color = (r < 5) ? (BubbleColor)(rand() % BUBBLE_COLORS) : BUBBLE_NONE;
-            // Altıgen grid için pozisyon hesaplama
-            grid->bubbles[r][c].pos = (Vector2){
-                60 + c * BUBBLE_RADIUS * 2 + (r % 2) * BUBBLE_RADIUS,
-                60 + r * (BUBBLE_RADIUS * 1.73f)
-            };
+            float x = x_offset + c * BUBBLE_RADIUS * 2 + (r % 2) * BUBBLE_RADIUS;
+            float y = y_offset + r * (BUBBLE_RADIUS * 1.73f);
+            grid->bubbles[r][c].pos = (Vector2){ x, y };
         }
     }
 }

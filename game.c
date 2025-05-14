@@ -24,12 +24,18 @@ void UpdateGame(Game *game, GameState *state) {
     UpdatePlayer(&game->player, &game->grid);
     // Fırlatılan top çarptıysa işlemleri yap
     if (game->player.shooting) {
+        int row, col;
         if (CheckBubbleCollision(&game->player.bubble, &game->grid)) {
-            PlaceBubble(&game->player.bubble, &game->grid);
-            int popped = PopConnectedBubbles(&game->grid);
-            if (popped >= 3) game->score += popped * 10;
-            DropFloatingBubbles(&game->grid, &game->score);
-            NextBubble(&game->player);
+            PlaceBubble(&game->player.bubble, &game->grid, &row, &col);
+            int popped = PopConnectedBubbles(&game->grid, row, col);
+            if (popped >= 3) {
+                game->score += popped * 10;
+                DropFloatingBubbles(&game->grid, &game->score);
+                NextBubble(&game->player);
+            } else {
+                // Patlama yoksa balon aktif kalmalı, yeni top gelmemeli
+                game->player.shooting = 0;
+            }
         }
     }
     if (IsGridFull(&game->grid)) {
