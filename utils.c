@@ -1,0 +1,1 @@
+// utils.c - Yardımcı fonksiyonlar (şimdilik boş) 
