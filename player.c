@@ -47,9 +47,13 @@ void UpdatePlayer(Player *player, const BubbleGrid *grid) {
         player->bubble.pos.x += player->velocity.x;
         player->bubble.pos.y += player->velocity.y;
         // Kenarlardan sekme
-        if (player->bubble.pos.x < BUBBLE_RADIUS || player->bubble.pos.x > 800 - BUBBLE_RADIUS) {
+        if (player->bubble.pos.x < BUBBLE_RADIUS) {
+            player->bubble.pos.x = BUBBLE_RADIUS;
             player->velocity.x *= -1;
-            player->bubble.pos.x = Clamp(player->bubble.pos.x, BUBBLE_RADIUS, 800 - BUBBLE_RADIUS);
+        }
+        if (player->bubble.pos.x > 800 - BUBBLE_RADIUS) {
+            player->bubble.pos.x = 800 - BUBBLE_RADIUS;
+            player->velocity.x *= -1;
         }
     }
 }
