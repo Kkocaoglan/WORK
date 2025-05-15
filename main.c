@@ -3,30 +3,48 @@
 #include "ui.h"
 
 int main(void) {
-    // Raylib başlat
-    InitWindow(800, 600, "Bubble Shooter");
+    // Pencere başlatma
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Bubble Shooter");
     SetTargetFPS(60);
 
-    GameState gameState = MENU;
+    // Oyun yapısını başlat
     Game game;
     InitGame(&game);
+    GameState state = GAME_STATE_MENU;
 
+    // Ana döngü
     while (!WindowShouldClose()) {
-        // Oyun durumu yönetimi
-        switch (gameState) {
-            case MENU:
-                if (UpdateMenuUI()) gameState = PLAYING;
+        // Oyun durumuna göre güncelleme
+        switch (state) {
+            case GAME_STATE_MENU:
+                if (UpdateMenuUI()) {
+                    state = GAME_STATE_PLAYING;
+                }
                 break;
-            case PLAYING:
-                UpdateGame(&game, &gameState);
+
+            case GAME_STATE_PLAYING:
+                UpdateGame(&game, &state);
+                if (IsKeyPressed(KEY_P)) {
+                    state = GAME_STATE_PAUSED;
+                }
                 break;
-            case PAUSED:
-                if (IsKeyPressed(KEY_P)) gameState = PLAYING;
+
+            case GAME_STATE_PAUSED:
+                if (IsKeyPressed(KEY_P)) {
+                    state = GAME_STATE_PLAYING;
+                }
                 break;
-            case GAME_OVER:
+
+            case GAME_STATE_LEVEL_COMPLETE:
+                // Level tamamlandı, sonraki levele geç
+                StartNextLevel(&game);
+                state = GAME_STATE_PLAYING;
+                break;
+
+            case GAME_STATE_GAME_OVER:
                 if (UpdateGameOverUI()) {
                     ResetGame(&game);
-                    gameState = MENU;
+                    state = GAME_STATE_PLAYING;
                 }
                 break;
         }
@@ -35,16 +53,32 @@ int main(void) {
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
-        switch (gameState) {
-            case MENU: DrawMenuUI(); break;
-            case PLAYING: DrawGame(&game); break;
-            case PAUSED: DrawPauseUI(); break;
-            case GAME_OVER: DrawGameOverUI(game.score); break;
+        switch (state) {
+            case GAME_STATE_MENU:
+                DrawMenuUI();
+                break;
+
+            case GAME_STATE_PLAYING:
+                DrawGame(&game);
+                break;
+
+            case GAME_STATE_PAUSED:
+                DrawGame(&game);
+                DrawPauseUI();
+                break;
+
+            case GAME_STATE_GAME_OVER:
+                DrawGame(&game);
+                DrawGameOverUI(game.score);
+                break;
         }
 
         EndDrawing();
     }
 
+    // Temizlik
+    UnloadGame(&game);
     CloseWindow();
+
     return 0;
-} 
+}

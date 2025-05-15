@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 // Oyun başlatılır
-void InitGame(Game *game) {
+void InitGame(Game* game) {
     InitBubbleGrid(&game->grid);
     InitPlayer(&game->player);
     game->score = 0;
@@ -11,12 +11,12 @@ void InitGame(Game *game) {
 }
 
 // Oyun sıfırlanır
-void ResetGame(Game *game) {
+void ResetGame(Game* game) {
     InitGame(game);
 }
 
 // Oyun güncellenir (oyuncu, skor, oyun bitişi)
-void UpdateGame(Game *game, GameState *state) {
+void UpdateGame(Game* game, GameState* state) {
     if (game->isGameOver) {
         *state = GAME_OVER;
         return;
@@ -33,7 +33,8 @@ void UpdateGame(Game *game, GameState *state) {
                 int dropped = DropFloatingBubbles(&game->grid);
                 if (dropped > 0) game->score += dropped * 100;
                 NextBubble(&game->player);
-            } else {
+            }
+            else {
                 // Patlama yoksa balon aktif kalmalı, yeni top gelmemeli
                 game->player.shooting = 0;
             }
@@ -45,8 +46,8 @@ void UpdateGame(Game *game, GameState *state) {
 }
 
 // Oyun ekranı çizilir
-void DrawGame(const Game *game) {
+void DrawGame(const Game* game) {
     DrawBubbleGrid(&game->grid);
     DrawPlayer(&game->player);
     DrawScoreUI(game->score);
-} 
+}

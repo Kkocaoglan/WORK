@@ -12,9 +12,9 @@ typedef struct {
     Vector2 velocity; // Balonun hareket vektörü
 } Player;
 
-void InitPlayer(Player *player);
-void UpdatePlayer(Player *player, const BubbleGrid *grid);
-void DrawPlayer(const Player *player);
-void NextBubble(Player *player);
+void InitPlayer(Player* player);
+void UpdatePlayer(Player* player, const BubbleGrid* grid);
+void DrawPlayer(const Player* player);
+void NextBubble(Player* player);
 
 #endif // PLAYER_H 
