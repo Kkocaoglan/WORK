@@ -1,33 +1,24 @@
-#ifndef GAME_H
-#define GAME_H
+#ifndef GAME_H  
+#define GAME_H  
 
-#include "raylib.h"
-#include "bubble.h"
-#include "player.h"
+#include "bubble.h"  
+#include "player.h"  
 
-// Oyun durumları
-typedef enum {
-    GAME_STATE_MENU,
-    GAME_STATE_PLAYING,
-    GAME_STATE_PAUSED,
-    GAME_STATE_GAME_OVER
-} GameState;
+// Oyun durumları  
+typedef enum { MENU, PLAYING, PAUSED, GAME_OVER } GameState;  
 
-// Oyun yapısı
-typedef struct {
-    int score;
-    int level;
-    int isGameOver;
-    BubbleGrid grid;
-    float shooterAngle;
-    Bubble currentBubble;
-    Player player;
-} Game;
+// Oyun ana yapısı  
+typedef struct {  
+   BubbleGrid grid;  
+   Player player;  
+   int score;  
+   int level;  
+   int isGameOver;  
+} Game;  
 
-// Oyun fonksiyonları
-void InitGame(Game* game);
-void UpdateGame(Game* game, GameState* state);
-void DrawGame(Game* game);
-void UnloadGame(Game* game);
+void InitGame(Game* game);  
+void UpdateGame(Game* game, GameState* state);  
+void DrawGame(const Game* game);  
+void ResetGame(Game* game);  
 
-#endif // GAME_H 
+#endif // GAME_H

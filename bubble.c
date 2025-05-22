@@ -1,7 +1,6 @@
 #include "bubble.h"
-#include "constants.h"
+#include <stdlib.h>
 
-// Balon rengine karşılık gelen Raylib Color
 Color GetColor(BubbleColor color) {
     switch (color) {
     case BUBBLE_RED: return RED;
@@ -9,111 +8,38 @@ Color GetColor(BubbleColor color) {
     case BUBBLE_BLUE: return BLUE;
     case BUBBLE_YELLOW: return YELLOW;
     case BUBBLE_PURPLE: return PURPLE;
-    default: return WHITE;
+    default: return BLANK;
     }
 }
 
-// Grid'i başlat
 void InitBubbleGrid(BubbleGrid* grid) {
-    // Önce tüm grid'i temizle
-    for (int row = 0; row < GRID_ROWS; row++) {
-        for (int col = 0; col < GRID_COLS; col++) {
-            grid->bubbles[row][col].active = 0;
+    float x_offset = BUBBLE_RADIUS + 2;
+    float y_offset = BUBBLE_RADIUS + 2;
+    for (int r = 0; r < GRID_ROWS; r++) {
+        for (int c = 0; c < GRID_COLS; c++) {
+            grid->bubbles[r][c].active = (r < 5) ? 1 : 0;
+            grid->bubbles[r][c].color = (r < 5) ? (BubbleColor)(rand() % BUBBLE_COLORS) : BUBBLE_NONE;
+            float x = x_offset + c * BUBBLE_RADIUS * 2 + (r % 2) * BUBBLE_RADIUS;
+            float y = y_offset + r * (BUBBLE_RADIUS * 1.73f);
+            grid->bubbles[r][c].pos = (Vector2){ x, y };
         }
     }
+}
 
-    // Üst 3 satırı balonlarla doldur
-    for (int row = 0; row < 3; row++) {
-        for (int col = 0; col < GRID_COLS; col++) {
-            // Tek satırlarda bir hücre kaydır
-            if (row % 2 == 1 && col == GRID_COLS - 1) continue;
-            
-            grid->bubbles[row][col].active = 1;
-            grid->bubbles[row][col].color = (BubbleColor)(rand() % BUBBLE_COLORS);
-            grid->bubbles[row][col].pos.x = col * BUBBLE_RADIUS * 2 + BUBBLE_RADIUS;
-            grid->bubbles[row][col].pos.y = row * BUBBLE_RADIUS * 2 + BUBBLE_RADIUS;
-            if (row % 2 == 1) {
-                grid->bubbles[row][col].pos.x += BUBBLE_RADIUS;
+void DrawBubbleGrid(const BubbleGrid* grid) {
+    for (int r = 0; r < GRID_ROWS; r++) {
+        for (int c = 0; c < GRID_COLS; c++) {
+            if (grid->bubbles[r][c].active) {
+                DrawCircleV(grid->bubbles[r][c].pos, BUBBLE_RADIUS, GetColor(grid->bubbles[r][c].color));
+                DrawCircleLines(grid->bubbles[r][c].pos.x, grid->bubbles[r][c].pos.y, BUBBLE_RADIUS, DARKGRAY);
             }
         }
     }
 }
 
-// Grid'i çiz
-void DrawBubbleGrid(BubbleGrid* grid) {
-    for (int row = 0; row < GRID_ROWS; row++) {
-        for (int col = 0; col < GRID_COLS; col++) {
-            if (grid->bubbles[row][col].active) {
-                float x = col * BUBBLE_RADIUS * 2 + BUBBLE_RADIUS;
-                float y = row * BUBBLE_RADIUS * 2 + BUBBLE_RADIUS;
-                if (row % 2 == 1) x += BUBBLE_RADIUS;
-
-                DrawCircle(x, y, BUBBLE_RADIUS, GetColor(grid->bubbles[row][col].color));
-            }
-        }
-    }
-}
-
-// Balonu çiz
-void DrawBubble(Bubble* bubble) {
-    if (bubble->active) {
-        DrawCircle(bubble->pos.x, bubble->pos.y, BUBBLE_RADIUS, GetColor(bubble->color));
-    }
-}
-
-// Nişancıyı çiz
-void DrawShooter(float angle) {
-    Vector2 start = { SCREEN_WIDTH / 2, SCREEN_HEIGHT };
-    Vector2 end = {
-        start.x + cosf(angle) * 50,
-        start.y + sinf(angle) * 50
-    };
-    DrawLineEx(start, end, 5, DARKGRAY);
-}
-
-// Çarpışma kontrolü
-int CheckCollision(BubbleGrid* grid, Bubble* bubble) {
-    // Üst sınır kontrolü
-    if (bubble->pos.y < BUBBLE_RADIUS) {
-        return 1;
-    }
-
-    // Grid ile çarpışma kontrolü
-    for (int row = 0; row < GRID_ROWS; row++) {
-        for (int col = 0; col < GRID_COLS; col++) {
-            if (grid->bubbles[row][col].active) {
-                float x = col * BUBBLE_RADIUS * 2 + BUBBLE_RADIUS;
-                float y = row * BUBBLE_RADIUS * 2 + BUBBLE_RADIUS;
-                if (row % 2 == 1) x += BUBBLE_RADIUS;
-
-                float dx = bubble->pos.x - x;
-                float dy = bubble->pos.y - y;
-                float distance = sqrtf(dx * dx + dy * dy);
-
-                if (distance < BUBBLE_RADIUS * 2) {
-                    // Çarpışma noktasını bul
-                    int newRow = (int)(bubble->pos.y / (BUBBLE_RADIUS * 2));
-                    int newCol = (int)(bubble->pos.x / (BUBBLE_RADIUS * 2));
-                    if (newRow % 2 == 1) newCol = (int)((bubble->pos.x - BUBBLE_RADIUS) / (BUBBLE_RADIUS * 2));
-
-                    // Sınırları kontrol et
-                    if (newRow >= 0 && newRow < GRID_ROWS && newCol >= 0 && newCol < GRID_COLS) {
-                        grid->bubbles[newRow][newCol].active = 1;
-                        grid->bubbles[newRow][newCol].color = bubble->color;
-                    }
-                    return 1;
-                }
-            }
-        }
+int IsGridFull(const BubbleGrid* grid) {
+    for (int c = 0; c < GRID_COLS; c++) {
+        if (grid->bubbles[GRID_ROWS - 1][c].active) return 1;
     }
     return 0;
-}
-
-// Grid'i temizle
-void UnloadBubbleGrid(BubbleGrid* grid) {
-    for (int row = 0; row < GRID_ROWS; row++) {
-        for (int col = 0; col < GRID_COLS; col++) {
-            grid->bubbles[row][col].active = 0;
-        }
-    }
 }

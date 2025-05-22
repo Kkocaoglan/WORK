@@ -1,12 +1,8 @@
 #include "game.h"
 #include <stdlib.h>
-#include <time.h>
 
 // Oyun başlatılır
 void InitGame(Game* game) {
-    // Rastgele sayı üreteci için seed
-    srand((unsigned int)time(NULL));
-    
     InitBubbleGrid(&game->grid);
     InitPlayer(&game->player);
     game->score = 0;
@@ -22,7 +18,7 @@ void ResetGame(Game* game) {
 // Oyun güncellenir (oyuncu, skor, oyun bitişi)
 void UpdateGame(Game* game, GameState* state) {
     if (game->isGameOver) {
-        *state = GAME_STATE_GAME_OVER;
+        *state = GAME_OVER;
         return;
     }
     UpdatePlayer(&game->player, &game->grid);

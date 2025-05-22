@@ -17,4 +17,4 @@ void UpdatePlayer(Player* player, const BubbleGrid* grid);
 void DrawPlayer(const Player* player);
 void NextBubble(Player* player);
 
-#endif // PLAYER_H 
+#endif // PLAYER_H
