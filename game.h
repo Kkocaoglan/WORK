@@ -3,6 +3,7 @@
 
 #include "raylib.h"
 #include "bubble.h"
+#include "player.h"
 
 // Oyun durumları
 typedef enum {
@@ -15,9 +16,12 @@ typedef enum {
 // Oyun yapısı
 typedef struct {
     int score;
+    int level;
+    int isGameOver;
     BubbleGrid grid;
     float shooterAngle;
     Bubble currentBubble;
+    Player player;
 } Game;
 
 // Oyun fonksiyonları

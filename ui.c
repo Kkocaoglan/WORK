@@ -26,7 +26,7 @@ void DrawLevelUI(int level, int targetScore) {
     char buf[64];
     sprintf(buf, "Level: %d", level);
     DrawText(buf, 20, 60, 32, DARKGRAY);
-    
+
     sprintf(buf, "Hedef: %d", targetScore);
     DrawText(buf, 20, 100, 32, DARKGRAY);
 }
@@ -42,10 +42,10 @@ void DrawLevelCompleteUI(int level, int score) {
     char buf[64];
     sprintf(buf, "Level %d Tamamlandi!", level);
     DrawText(buf, 220, 220, 36, GREEN);
-    
+
     sprintf(buf, "Skorunuz: %d", score);
     DrawText(buf, 270, 280, 24, DARKGRAY);
-    
+
     DrawText("Sonraki level icin SPACE'e basin", 180, 340, 24, GRAY);
 }
 

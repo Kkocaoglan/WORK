@@ -10,8 +10,8 @@
 #define BUBBLE_SPEED 8.0f
 
 // Oyuncu başlatılır
-void InitPlayer(Player *player) {
-    player->pos = (Vector2){400, PLAYER_Y};
+void InitPlayer(Player* player) {
+    player->pos = (Vector2){ 400, PLAYER_Y };
     player->angle = 90.0f;
     player->shooting = 0;
     player->bubble.active = 1;
@@ -20,16 +20,16 @@ void InitPlayer(Player *player) {
 }
 
 // Yeni balon hazırla
-void NextBubble(Player *player) {
+void NextBubble(Player* player) {
     player->shooting = 0;
     player->bubble.active = 1;
     player->bubble.color = (BubbleColor)(rand() % BUBBLE_COLORS);
     player->bubble.pos = player->pos;
-    player->velocity = (Vector2){0, 0};
+    player->velocity = (Vector2){ 0, 0 };
 }
 
 // Oyuncu kontrolü ve balon fırlatma
-void UpdatePlayer(Player *player, const BubbleGrid *grid) {
+void UpdatePlayer(Player* player, const BubbleGrid* grid) {
     if (!player->shooting) {
         // Açı ayarı
         if (IsKeyDown(KEY_LEFT)) player->angle -= 2.0f;
@@ -44,7 +44,8 @@ void UpdatePlayer(Player *player, const BubbleGrid *grid) {
             player->velocity.y = -sinf(rad) * BUBBLE_SPEED;
             player->bubble.pos = player->pos;
         }
-    } else {
+    }
+    else {
         // Fırlatılan balonun hareketi
         player->bubble.pos.x += player->velocity.x;
         player->bubble.pos.y += player->velocity.y;
@@ -61,7 +62,7 @@ void UpdatePlayer(Player *player, const BubbleGrid *grid) {
 }
 
 // Oyuncu ve nişangahı çizer
-void DrawPlayer(const Player *player) {
+void DrawPlayer(const Player* player) {
     // Fırlatma çizgisi
     float rad = player->angle * (PI / 180.0f);
     Vector2 end = {
@@ -73,7 +74,8 @@ void DrawPlayer(const Player *player) {
     if (!player->shooting) {
         DrawCircleV(player->pos, BUBBLE_RADIUS, LIGHTGRAY);
         DrawCircleV(player->pos, BUBBLE_RADIUS - 2, GetColor(player->bubble.color));
-    } else {
+    }
+    else {
         DrawCircleV(player->bubble.pos, BUBBLE_RADIUS, GetColor(player->bubble.color));
     }
-} 
+}
