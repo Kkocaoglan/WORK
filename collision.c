@@ -139,9 +139,20 @@ static void dfs(BubbleGrid* grid, int r, int c, BubbleColor color, int visited[G
         int nr = r + dr[d];
         int nc = c + ((r % 2 == 0) ? dc_even[d] : dc_odd[d]);
 
-        // Geçerli bir komşu ise DFS'i devam ettir
+        // Geçerli bir komşu ise ve fiziksel olarak bağlıysa DFS'i devam ettir
         if (nr >= 0 && nr < GRID_ROWS && nc >= 0 && nc < GRID_COLS) {
-            dfs(grid, nr, nc, color, visited, count);
+            // Komşu balon aktif ve aynı renkte mi kontrol et
+            if (grid->bubbles[nr][nc].active && grid->bubbles[nr][nc].color == color) {
+                // Fiziksel bağlantıyı kontrol et
+                float dx = grid->bubbles[r][c].pos.x - grid->bubbles[nr][nc].pos.x;
+                float dy = grid->bubbles[r][c].pos.y - grid->bubbles[nr][nc].pos.y;
+                float dist = sqrtf(dx * dx + dy * dy);
+                
+                // Eğer balonlar fiziksel olarak bağlıysa (yaklaşık olarak 2 * BUBBLE_RADIUS mesafede)
+                if (dist <= BUBBLE_RADIUS * 2.1f) {
+                    dfs(grid, nr, nc, color, visited, count);
+                }
+            }
         }
     }
 }

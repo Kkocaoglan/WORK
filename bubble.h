@@ -24,6 +24,7 @@ typedef struct {
     Vector2 pos;         // Ekrandaki konumu
     BubbleColor color;   // Rengi
     int active;          // Aktif mi?
+    int id;             // Benzersiz ID
 } Bubble;
 
 // Altıgen grid yapısı
