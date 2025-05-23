@@ -14,7 +14,7 @@ typedef struct {
 
 void InitPlayer(Player* player);
 void UpdatePlayer(Player* player, const BubbleGrid* grid);
-void DrawPlayer(const Player* player);
-void NextBubble(Player* player);
+void DrawPlayer(const Player* player, const BubbleGrid* grid);
+void NextBubble(Player* player, const BubbleGrid* grid);
 
-#endif // PLAYER_H
+#endif // PLAYER_H

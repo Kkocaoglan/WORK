@@ -44,7 +44,6 @@ static void FindNearestGridCell(BubbleGrid* grid, Vector2 pos, int* outRow, int*
 
 // Balonu gridde uygun yere yerleştirir, çarpışan balonun komşu boş hücresine veya tavana
 void PlaceBubble(Bubble* bubble, BubbleGrid* grid, int* outRow, int* outCol) {
-    int baseR = 0, baseC = 0;
     // Eğer tavana çarptıysa, en üst satırda en yakın boş hücreye yerleştir
     if (bubble->pos.y < grid->bubbles[0][0].pos.y + BUBBLE_RADIUS) {
         float minDist = 1e9f;
@@ -65,37 +64,57 @@ void PlaceBubble(Bubble* bubble, BubbleGrid* grid, int* outRow, int* outCol) {
         if (outCol) *outCol = bestC;
         return;
     }
-    // Tavana çarpmadıysa, çarpışan balona en yakın grid hücresini bul
-    FindNearestGridCell(grid, bubble->pos, &baseR, &baseC);
-    // 6 komşuya bak, en yakın boş olanı bul
-    int dr[6] = { -1, -1, 0, 0, 1, 1 };
-    int dc_even[6] = { -1, 0, -1, 1, -1, 0 };
-    int dc_odd[6] = { 0, 1, -1, 1, 0, 1 };
+
+    // Çarpışma noktasına en yakın grid hücresini bul
     int bestR = -1, bestC = -1;
     float minDist = 1e9f;
-    for (int d = 0; d < 6; d++) {
-        int nr = baseR + dr[d];
-        int nc = baseC + ((baseR % 2 == 0) ? dc_even[d] : dc_odd[d]);
-        if (nr >= 0 && nr < GRID_ROWS && nc >= 0 && nc < GRID_COLS && !grid->bubbles[nr][nc].active) {
-            float dx = bubble->pos.x - grid->bubbles[nr][nc].pos.x;
-            float dy = bubble->pos.y - grid->bubbles[nr][nc].pos.y;
-            float dist = dx * dx + dy * dy;
-            if (dist < minDist) {
-                minDist = dist;
-                bestR = nr;
-                bestC = nc;
+    
+    // Tüm grid hücrelerini kontrol et
+    for (int r = 0; r < GRID_ROWS; r++) {
+        for (int c = 0; c < GRID_COLS; c++) {
+            // Sadece boş hücreleri kontrol et
+            if (!grid->bubbles[r][c].active) {
+                float dx = bubble->pos.x - grid->bubbles[r][c].pos.x;
+                float dy = bubble->pos.y - grid->bubbles[r][c].pos.y;
+                float dist = dx * dx + dy * dy;
+                
+                // Eğer bu hücre daha yakınsa ve geçerli bir yerleşim noktasıysa
+                if (dist < minDist) {
+                    // Bu hücrenin en az bir aktif komşusu var mı kontrol et
+                    int hasActiveNeighbor = 0;
+                    int dr[6] = { -1, -1, 0, 0, 1, 1 };
+                    int dc_even[6] = { -1, 0, -1, 1, -1, 0 };
+                    int dc_odd[6] = { 0, 1, -1, 1, 0, 1 };
+                    
+                    for (int d = 0; d < 6; d++) {
+                        int nr = r + dr[d];
+                        int nc = c + ((r % 2 == 0) ? dc_even[d] : dc_odd[d]);
+                        if (nr >= 0 && nr < GRID_ROWS && nc >= 0 && nc < GRID_COLS) {
+                            if (grid->bubbles[nr][nc].active) {
+                                hasActiveNeighbor = 1;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Eğer bu hücrenin aktif komşusu varsa veya en üst satırdaysa
+                    if (hasActiveNeighbor || r == 0) {
+                        minDist = dist;
+                        bestR = r;
+                        bestC = c;
+                    }
+                }
             }
         }
     }
-    // Eğer hiç boş komşu yoksa, base hücresine yerleştir (son çare)
-    if (bestR == -1 || bestC == -1) {
-        bestR = baseR;
-        bestC = baseC;
+    
+    // Eğer uygun bir hücre bulunduysa, balonu yerleştir
+    if (bestR != -1 && bestC != -1) {
+        grid->bubbles[bestR][bestC].active = 1;
+        grid->bubbles[bestR][bestC].color = bubble->color;
+        if (outRow) *outRow = bestR;
+        if (outCol) *outCol = bestC;
     }
-    grid->bubbles[bestR][bestC].active = 1;
-    grid->bubbles[bestR][bestC].color = bubble->color;
-    if (outRow) *outRow = bestR;
-    if (outCol) *outCol = bestC;
 }
 
 // DFS ile bağlantılı aynı renkteki balonları bulup patlatır
