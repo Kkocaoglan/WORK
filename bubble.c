@@ -7,21 +7,21 @@ Color GetColor(BubbleColor color) {
     case BUBBLE_GREEN: return GREEN;
     case BUBBLE_BLUE: return BLUE;
     case BUBBLE_YELLOW: return YELLOW;
-    case : return PURPLE;
+    case BUBBLE_PURPLE: return PURPLE;
     default: return BLANK;
     }
 }
 
 void InitBubbleGrid(BubbleGrid* grid) {
     float x_offset = BUBBLE_RADIUS + 2;
-    float y_offset = BUBBLE_RADIUS + 2;
+    float y_offset = BUBBLE_RADIUS + 2;// kenarlardan 2 boşluk
     for (int r = 0; r < GRID_ROWS; r++) {
         for (int c = 0; c < GRID_COLS; c++) {
             grid->bubbles[r][c].active = (r < 5) ? 1 : 0;
             grid->bubbles[r][c].color = (r < 5) ? (BubbleColor)(rand() % BUBBLE_COLORS) : BUBBLE_NONE;
-            float x = x_offset + c * BUBBLE_RADIUS * 2 + (r % 2) * BUBBLE_RADIUS;
-            float y = y_offset + r * (BUBBLE_RADIUS * 1.73f);
-            grid->bubbles[r][c].pos = (Vector2){ x, y };
+			float x = x_offset + c * BUBBLE_RADIUS * 2 + (r % 2) * BUBBLE_RADIUS; // Altıgenin genişliği
+			float y = y_offset + r * (BUBBLE_RADIUS * 1.73f); // 1.73, altıgenin yüksekliği
+			grid->bubbles[r][c].pos = (Vector2){ x, y };// altıgenin merkezine göre ayarlandı
         }
     }
 }
@@ -30,7 +30,7 @@ void DrawBubbleGrid(const BubbleGrid* grid) {
     for (int r = 0; r < GRID_ROWS; r++) {
         for (int c = 0; c < GRID_COLS; c++) {
             if (grid->bubbles[r][c].active) {
-                DrawCircleV(grid->bubbles[r][c].pos, BUBBLE_RADIUS, GetColor(grid->bubbles[r][c].color));
+				DrawCircleV(grid->bubbles[r][c].pos, BUBBLE_RADIUS, GetColor(grid->bubbles[r][c].color));// altıgenin merkezine göre çizildi
                 DrawCircleLines(grid->bubbles[r][c].pos.x, grid->bubbles[r][c].pos.y, BUBBLE_RADIUS, DARKGRAY);
             }
         }

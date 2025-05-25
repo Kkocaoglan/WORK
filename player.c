@@ -5,8 +5,8 @@
 #include "bubble.h"
 
 #define PLAYER_Y 550
-#define MIN_ANGLE 30.0f
-#define MAX_ANGLE 150.0f
+#define MIN_ANGLE 0.0f
+#define MAX_ANGLE 180.0f
 #define BUBBLE_SPEED 8.0f
 
 // Oyuncu başlatılır
@@ -33,11 +33,11 @@ float CalculateAngleFromMouse(Vector2 mousePos, Vector2 playerPos) {
     float dx = mousePos.x - playerPos.x;
     float dy = playerPos.y - mousePos.y; // Y koordinatı ters olduğu için çıkarma yapıyoruz
     float angle = atan2f(dy, dx) * (180.0f / PI);
-    
+
     // Açıyı sınırla
     if (angle < MIN_ANGLE) angle = MIN_ANGLE;
     if (angle > MAX_ANGLE) angle = MAX_ANGLE;
-    
+
     return angle;
 }
 
@@ -47,17 +47,18 @@ void UpdatePlayer(Player* player, const BubbleGrid* grid) {
         // Mouse pozisyonundan açı hesapla
         Vector2 mousePos = GetMousePosition();
         float mouseAngle = CalculateAngleFromMouse(mousePos, player->pos);
-        
+
         // Klavye ile açı değişimi
         float angleChange = 0.0f;
         if (IsKeyDown(KEY_LEFT)) angleChange -= 2.0f;
         if (IsKeyDown(KEY_RIGHT)) angleChange += 2.0f;
-        
+
         // Mouse ve klavye açılarını birleştir
         if (angleChange != 0.0f) {
             // Klavye ile değişim varsa, mevcut açıyı değiştir
             player->angle += angleChange;
-        } else {
+        }
+        else {
             // Klavye ile değişim yoksa, mouse açısını kullan
             // Ancak ani değişimleri önlemek için yumuşak geçiş yap
             float angleDiff = mouseAngle - player->angle;
@@ -67,7 +68,7 @@ void UpdatePlayer(Player* player, const BubbleGrid* grid) {
             }
             player->angle += angleDiff * 0.2f; // Yumuşak geçiş için 0.2 çarpanı
         }
-        
+
         // Açı sınırlaması
         if (player->angle < MIN_ANGLE) player->angle = MIN_ANGLE;
         if (player->angle > MAX_ANGLE) player->angle = MAX_ANGLE;
@@ -102,24 +103,24 @@ static Vector2 CheckAimLineCollision(Vector2 start, Vector2 dir, const BubbleGri
     Vector2 current = start;
     float step = 5.0f; // Küçük adımlarla ilerle
     *bounceCount = 0;
-    
+
     while (current.y > 0 && *bounceCount < 2) { // En fazla 2 sekme
         // Kenarlardan sekme kontrolü
-        if (current.x < 0) {
-            current.x = 0;
+        if (current.x < BUBBLE_RADIUS) {
+            current.x = BUBBLE_RADIUS;
             bouncePoints[*bounceCount] = current;
             dir.x = -dir.x; // Yönü yansıt
             (*bounceCount)++;
             continue;
         }
-        if (current.x > 800) {
-            current.x = 800;
+        if (current.x > 800 - BUBBLE_RADIUS) {
+            current.x = 800 - BUBBLE_RADIUS;
             bouncePoints[*bounceCount] = current;
             dir.x = -dir.x; // Yönü yansıt
             (*bounceCount)++;
             continue;
         }
-        
+
         // Balonlarla çarpışma kontrolü
         for (int r = 0; r < GRID_ROWS; r++) {
             for (int c = 0; c < GRID_COLS; c++) {
@@ -133,12 +134,12 @@ static Vector2 CheckAimLineCollision(Vector2 start, Vector2 dir, const BubbleGri
                 }
             }
         }
-        
+
         // Bir sonraki noktaya ilerle
         current.x += dir.x * step;
         current.y += dir.y * step;
     }
-    
+
     return current; // Tavana çarptıysa veya maksimum sekme sayısına ulaştıysa
 }
 
@@ -146,7 +147,7 @@ static Vector2 CheckAimLineCollision(Vector2 start, Vector2 dir, const BubbleGri
 static void DrawDottedLine(Vector2 start, Vector2 end, Color color) {
     float totalDist = sqrtf(powf(end.x - start.x, 2) + powf(end.y - start.y, 2));
     int dotCount = (int)(totalDist / 20.0f); // Her 20 pikselde bir nokta
-    
+
     for (int i = 1; i <= dotCount; i++) {
         float t = (float)i / dotCount;
         Vector2 dotPos = {
@@ -165,12 +166,12 @@ void DrawPlayer(const Player* player, const BubbleGrid* grid) {
     float rad = player->angle * (PI / 180.0f);
     Vector2 start = player->pos;
     Vector2 dir = { cosf(rad), -sinf(rad) };
-    
+
     // Çarpışma noktasını bul
     int bounceCount;
     Vector2 bouncePoints[2]; // En fazla 2 sekme noktası
     Vector2 end = CheckAimLineCollision(start, dir, grid, &bounceCount, bouncePoints);
-    
+
     // Her bölüm için noktalı çizgi çiz
     Vector2 currentStart = start;
     for (int i = 0; i <= bounceCount; i++) {
@@ -183,7 +184,8 @@ void DrawPlayer(const Player* player, const BubbleGrid* grid) {
     if (!player->shooting) {
         DrawCircleV(player->pos, BUBBLE_RADIUS, LIGHTGRAY);
         DrawCircleV(player->pos, BUBBLE_RADIUS - 2, GetColor(player->bubble.color));
-    } else {
+    }
+    else {
         DrawCircleV(player->bubble.pos, BUBBLE_RADIUS, GetColor(player->bubble.color));
     }
 }

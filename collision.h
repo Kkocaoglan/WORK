@@ -1,53 +1,18 @@
-#include "game.h"
-#include <stdlib.h>
+#ifndef COLLISION_H  
+#define COLLISION_H  
 
-// Oyun başlatılır
-void InitGame(Game* game) {
-    InitBubbleGrid(&game->grid);
-    InitPlayer(&game->player);
-    game->score = 0;
-    game->level = 1;
-    game->isGameOver = 0;
-}
+#include "bubble.h"  
 
-// Oyun sıfırlanır
-void ResetGame(Game* game) {
-    InitGame(game);
-}
+// Fırlatılan balonun griddeki balonlara çarpıp çarpmadığını kontrol eder  
+int CheckBubbleCollision(const Bubble* bubble, const BubbleGrid* grid);
 
-// Oyun güncellenir (oyuncu, skor, oyun bitişi)
-void UpdateGame(Game* game, GameState* state) {
-    if (game->isGameOver) {
-        *state = GAME_OVER;
-        return;
-    }
-    UpdatePlayer(&game->player, &game->grid);
-    // Fırlatılan top çarptıysa işlemleri yap
-    if (game->player.shooting) {
-        int row, col;
-        if (CheckBubbleCollision(&game->player.bubble, &game->grid)) {
-            PlaceBubble(&game->player.bubble, &game->grid, &row, &col);
-            int popped = PopConnectedBubbles(&game->grid, row, col);
-            if (popped >= 3) {
-                game->score += popped * 50;
-                int dropped = DropFloatingBubbles(&game->grid);
-                if (dropped > 0) game->score += dropped * 100;
-                NextBubble(&game->player);
-            }
-            else {
-                // Patlama yoksa balon aktif kalmalı, yeni top gelmemeli
-                game->player.shooting = 0;
-            }
-        }
-    }
-    if (IsGridFull(&game->grid)) {
-        game->isGameOver = 1;
-    }
-}
+// Balonu gridde uygun yere yerleştirir, yerleştirilen satır ve sütunu döndürür  
+void PlaceBubble(Bubble* bubble, BubbleGrid* grid, int* outRow, int* outCol);
 
-// Oyun ekranı çizilir
-void DrawGame(const Game* game) {
-    DrawBubbleGrid(&game->grid);
-    DrawPlayer(&game->player);
-    DrawScoreUI(game->score);
-}
+// Bağlantılı balonları verilen konumdan DFS/BFS ile bulup patlatır, patlayan balon sayısını döndürür  
+int PopConnectedBubbles(BubbleGrid* grid, int row, int col);
+
+// Tavana bağlı olmayan balonları düşürür, düşen balon sayısını döndürür  
+int DropFloatingBubbles(BubbleGrid* grid);
+
+#endif // COLLISION_H

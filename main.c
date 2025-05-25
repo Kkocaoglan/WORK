@@ -4,7 +4,7 @@
 
 int main(void) {
     // Raylib başlat
-    InitWindow(900, 700, "Bubble Shooter");
+    InitWindow(800, 600, "Bubble Shooter");
     SetTargetFPS(60);
 
     GameState gameState = MENU;
@@ -46,5 +46,5 @@ int main(void) {
     }
 
     CloseWindow();
-	return 0;
+    return 0;
 }

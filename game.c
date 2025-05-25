@@ -17,7 +17,7 @@ void ResetGame(Game* game) {
 
 // Kalan renkleri bul
 static void FindRemainingColors(const BubbleGrid* grid, int* colorCount, BubbleColor* remainingColors) {
-    int colorExists[BUBBLE_COLORS] = {0};  // Her rengin var olup olmadığını tut
+    int colorExists[BUBBLE_COLORS] = { 0 };  // Her rengin var olup olmadığını tut
     *colorCount = 0;
 
     // Griddeki tüm aktif balonları kontrol et
@@ -42,12 +42,13 @@ static Bubble CreateBubbleFromRemainingColors(const BubbleGrid* grid) {
 
     Bubble bubble;
     bubble.active = 1;
-    bubble.pos = (Vector2){0, 0};  // Başlangıç pozisyonu
+    bubble.pos = (Vector2){ 0, 0 };  // Başlangıç pozisyonu
 
     // Eğer 2 veya daha az renk kaldıysa, sadece o renklerden birini seç
     if (colorCount <= 2) {
         bubble.color = remainingColors[GetRandomValue(0, colorCount - 1)];
-    } else {
+    }
+    else {
         // Normal durumda rastgele renk seç
         bubble.color = GetRandomValue(0, BUBBLE_COLORS - 1);
     }
@@ -63,7 +64,7 @@ void UpdateGame(Game* game, GameState* state) {
     }
 
     UpdatePlayer(&game->player, &game->grid);
-    
+
     // Fırlatılan top çarptıysa işlemleri yap
     if (game->player.shooting) {
         int row, col;
@@ -74,6 +75,7 @@ void UpdateGame(Game* game, GameState* state) {
                 game->score += popped * 50;
                 int dropped = DropFloatingBubbles(&game->grid);
                 if (dropped > 0) game->score += dropped * 100;
+
                 // Tüm toplar bitti mi kontrolü
                 int totalBalls = 0;
                 for (int r = 0; r < GRID_ROWS; r++) {
@@ -99,7 +101,6 @@ void UpdateGame(Game* game, GameState* state) {
         }
     }
 
-    // Oyun sadece toplar ekranın en alt satırına değdiğinde bitsin
     if (IsGridFull(&game->grid)) {
         game->isGameOver = 1;
         *state = GAME_OVER;

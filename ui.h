@@ -2,17 +2,17 @@
 #define UI_H  
 
 // Menü arayüzü  
-void DrawMenuUI(void);  
-int UpdateMenuUI(void);  
+void DrawMenuUI(void);
+int UpdateMenuUI(void);
 
 // Skor gösterimi  
-void DrawScoreUI(int score);  
+void DrawScoreUI(int score);
 
 // Oyun duraklatma arayüzü  
-void DrawPauseUI(void);  
+void DrawPauseUI(void);
 
 // Oyun sonu arayüzü  
-void DrawGameOverUI(int score);  
-int UpdateGameOverUI(void);  
+void DrawGameOverUI(int score);
+int UpdateGameOverUI(void);
 
 #endif // UI_H
