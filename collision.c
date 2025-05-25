@@ -44,8 +44,13 @@ static void FindNearestGridCell(BubbleGrid* grid, Vector2 pos, int* outRow, int*
 
 // Balonu gridde uygun yere yerleştirir, çarpışan balonun komşu boş hücresine veya tavana
 void PlaceBubble(Bubble* bubble, BubbleGrid* grid, int* outRow, int* outCol) {
+    printf("\n=== PlaceBubble Başladı ===\n");
+    printf("Fırlatılan balon pozisyonu: x=%.2f, y=%.2f, renk=%d\n", 
+           bubble->pos.x, bubble->pos.y, bubble->color);
+
     // Eğer tavana çarptıysa, en üst satırda en yakın boş hücreye yerleştir
     if (bubble->pos.y < grid->bubbles[0][0].pos.y + BUBBLE_RADIUS) {
+        printf("Tavana çarpma tespit edildi\n");
         float minDist = 1e9f;
         int bestC = 0;
         for (int c = 0; c < GRID_COLS; c++) {
@@ -60,100 +65,87 @@ void PlaceBubble(Bubble* bubble, BubbleGrid* grid, int* outRow, int* outCol) {
         }
         grid->bubbles[0][bestC].active = 1;
         grid->bubbles[0][bestC].color = bubble->color;
+        grid->bubbles[0][bestC].pos = grid->bubbles[0][bestC].pos;
+        printf("Balon tavana yerleştirildi: row=0, col=%d\n", bestC);
         if (outRow) *outRow = 0;
         if (outCol) *outCol = bestC;
+        printf("=== PlaceBubble Bitti ===\n\n");
         return;
     }
 
-    // Çarpışma noktasına en yakın grid hücresini bul
-    int bestR = -1, bestC = -1;
+    // 1. Çarpışma noktasına en yakın aktif balonu bul
+    int nearestR = -1, nearestC = -1;
     float minDist = 1e9f;
-    
-    // Tüm grid hücrelerini kontrol et
     for (int r = 0; r < GRID_ROWS; r++) {
         for (int c = 0; c < GRID_COLS; c++) {
-            // Sadece boş hücreleri kontrol et
-            if (!grid->bubbles[r][c].active) {
+            if (grid->bubbles[r][c].active) {
                 float dx = bubble->pos.x - grid->bubbles[r][c].pos.x;
                 float dy = bubble->pos.y - grid->bubbles[r][c].pos.y;
                 float dist = dx * dx + dy * dy;
-                
-                // Eğer bu hücre daha yakınsa ve geçerli bir yerleşim noktasıysa
                 if (dist < minDist) {
-                    // Bu hücrenin en az bir aktif komşusu var mı kontrol et
-                    int hasActiveNeighbor = 0;
-                    int dr[6] = { -1, -1, 0, 0, 1, 1 };
-                    int dc_even[6] = { -1, 0, -1, 1, -1, 0 };
-                    int dc_odd[6] = { 0, 1, -1, 1, 0, 1 };
-                    
-                    for (int d = 0; d < 6; d++) {
-                        int nr = r + dr[d];
-                        int nc = c + ((r % 2 == 0) ? dc_even[d] : dc_odd[d]);
-                        if (nr >= 0 && nr < GRID_ROWS && nc >= 0 && nc < GRID_COLS) {
-                            if (grid->bubbles[nr][nc].active) {
-                                hasActiveNeighbor = 1;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    // Eğer bu hücrenin aktif komşusu varsa veya en üst satırdaysa
-                    if (hasActiveNeighbor || r == 0) {
-                        minDist = dist;
-                        bestR = r;
-                        bestC = c;
-                    }
+                    minDist = dist;
+                    nearestR = r;
+                    nearestC = c;
                 }
             }
         }
     }
-    
-    // Eğer uygun bir hücre bulunduysa, balonu yerleştir
+
+    // 2. O balonun 6 komşusundan en yakın boş olanı bul
+    int dr[6] = { -1, -1, 0, 0, 1, 1 };
+    int dc_even[6] = { -1, 0, -1, 1, -1, 0 };
+    int dc_odd[6] = { 0, 1, -1, 1, 0, 1 };
+    int bestR = -1, bestC = -1;
+    minDist = 1e9f;
+    for (int d = 0; d < 6; d++) {
+        int nr = nearestR + dr[d];
+        int nc = nearestC + ((nearestR % 2 == 0) ? dc_even[d] : dc_odd[d]);
+        if (nr >= 0 && nr < GRID_ROWS && nc >= 0 && nc < GRID_COLS) {
+            if (!grid->bubbles[nr][nc].active) {
+                float dx = bubble->pos.x - grid->bubbles[nr][nc].pos.x;
+                float dy = bubble->pos.y - grid->bubbles[nr][nc].pos.y;
+                float dist = dx * dx + dy * dy;
+                if (dist < minDist) {
+                    minDist = dist;
+                    bestR = nr;
+                    bestC = nc;
+                }
+            }
+        }
+    }
+
+    // 3. Eğer uygun bir hücre bulunduysa, balonu oraya yerleştir
     if (bestR != -1 && bestC != -1) {
         grid->bubbles[bestR][bestC].active = 1;
         grid->bubbles[bestR][bestC].color = bubble->color;
+        grid->bubbles[bestR][bestC].pos = grid->bubbles[bestR][bestC].pos;
+        printf("Balon yerleştirildi: row=%d, col=%d, renk=%d\n", bestR, bestC, bubble->color);
         if (outRow) *outRow = bestR;
         if (outCol) *outCol = bestC;
+    } else {
+        printf("UYARI: Uygun komşu boş hücre bulunamadı!\n");
     }
+    printf("=== PlaceBubble Bitti ===\n\n");
 }
 
 // DFS ile bağlantılı aynı renkteki balonları bulup patlatır
 static void dfs(BubbleGrid* grid, int r, int c, BubbleColor color, int visited[GRID_ROWS][GRID_COLS], int* count) {
-    // Sınır kontrolü
     if (r < 0 || r >= GRID_ROWS || c < 0 || c >= GRID_COLS) return;
-
-    // Aktiflik, renk ve ziyaret kontrolü
     if (!grid->bubbles[r][c].active || grid->bubbles[r][c].color != color || visited[r][c]) return;
 
-    // Ziyaret edildi olarak işaretle
     visited[r][c] = 1;
     (*count)++;
+    printf("DFS: Balon işaretlendi: row=%d, col=%d, renk=%d, toplam=%d\n", r, c, color, *count);
 
-    // Altıgen grid'de 6 komşu yönü
     int dr[6] = { -1, -1, 0, 0, 1, 1 };
-    int dc_even[6] = { -1, 0, -1, 1, -1, 0 }; // çift satır
-    int dc_odd[6] = { 0, 1, -1, 1, 0, 1 };   // tek satır
+    int dc_even[6] = { -1, 0, -1, 1, -1, 0 };
+    int dc_odd[6] = { 0, 1, -1, 1, 0, 1 };
 
-    // Komşuları kontrol et
     for (int d = 0; d < 6; d++) {
         int nr = r + dr[d];
         int nc = c + ((r % 2 == 0) ? dc_even[d] : dc_odd[d]);
-
-        // Geçerli bir komşu ise ve fiziksel olarak bağlıysa DFS'i devam ettir
-        if (nr >= 0 && nr < GRID_ROWS && nc >= 0 && nc < GRID_COLS) {
-            // Komşu balon aktif ve aynı renkte mi kontrol et
-            if (grid->bubbles[nr][nc].active && grid->bubbles[nr][nc].color == color) {
-                // Fiziksel bağlantıyı kontrol et
-                float dx = grid->bubbles[r][c].pos.x - grid->bubbles[nr][nc].pos.x;
-                float dy = grid->bubbles[r][c].pos.y - grid->bubbles[nr][nc].pos.y;
-                float dist = sqrtf(dx * dx + dy * dy);
-                
-                // Eğer balonlar fiziksel olarak bağlıysa (yaklaşık olarak 2 * BUBBLE_RADIUS mesafede)
-                if (dist <= BUBBLE_RADIUS * 2.1f) {
-                    dfs(grid, nr, nc, color, visited, count);
-                }
-            }
-        }
+        // Sadece grid komşuluğu ve renk kontrolü ile ilerle
+        dfs(grid, nr, nc, color, visited, count);
     }
 }
 

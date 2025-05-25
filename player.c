@@ -98,14 +98,26 @@ void UpdatePlayer(Player* player, const BubbleGrid* grid) {
 }
 
 // Nişan çizgisinin çarpışma kontrolü
-static Vector2 CheckAimLineCollision(Vector2 start, Vector2 dir, const BubbleGrid* grid) {
+static Vector2 CheckAimLineCollision(Vector2 start, Vector2 dir, const BubbleGrid* grid, int* bounceCount, Vector2* bouncePoints) {
     Vector2 current = start;
     float step = 5.0f; // Küçük adımlarla ilerle
+    *bounceCount = 0;
     
-    while (current.y > 0) { // Tavana kadar kontrol et
+    while (current.y > 0 && *bounceCount < 2) { // En fazla 2 sekme
         // Kenarlardan sekme kontrolü
-        if (current.x < BUBBLE_RADIUS || current.x > 800 - BUBBLE_RADIUS) {
-            return current;
+        if (current.x < BUBBLE_RADIUS) {
+            current.x = BUBBLE_RADIUS;
+            bouncePoints[*bounceCount] = current;
+            dir.x = -dir.x; // Yönü yansıt
+            (*bounceCount)++;
+            continue;
+        }
+        if (current.x > 800 - BUBBLE_RADIUS) {
+            current.x = 800 - BUBBLE_RADIUS;
+            bouncePoints[*bounceCount] = current;
+            dir.x = -dir.x; // Yönü yansıt
+            (*bounceCount)++;
+            continue;
         }
         
         // Balonlarla çarpışma kontrolü
@@ -127,7 +139,24 @@ static Vector2 CheckAimLineCollision(Vector2 start, Vector2 dir, const BubbleGri
         current.y += dir.y * step;
     }
     
-    return current; // Tavana çarptıysa
+    return current; // Tavana çarptıysa veya maksimum sekme sayısına ulaştıysa
+}
+
+// Noktalı çizgi çizme yardımcı fonksiyonu
+static void DrawDottedLine(Vector2 start, Vector2 end, Color color) {
+    float totalDist = sqrtf(powf(end.x - start.x, 2) + powf(end.y - start.y, 2));
+    int dotCount = (int)(totalDist / 20.0f); // Her 20 pikselde bir nokta
+    
+    for (int i = 1; i <= dotCount; i++) {
+        float t = (float)i / dotCount;
+        Vector2 dotPos = {
+            start.x + (end.x - start.x) * t,
+            start.y + (end.y - start.y) * t
+        };
+        // Noktaların boyutunu mesafeye göre ayarla
+        float dotSize = 5.0f * (1.0f - t * 0.5f); // Uzaktaki noktalar daha küçük
+        DrawCircleV(dotPos, dotSize, color);
+    }
 }
 
 // Oyuncu ve nişangahı çizer
@@ -138,22 +167,16 @@ void DrawPlayer(const Player* player, const BubbleGrid* grid) {
     Vector2 dir = { cosf(rad), -sinf(rad) };
     
     // Çarpışma noktasını bul
-    Vector2 end = CheckAimLineCollision(start, dir, grid);
+    int bounceCount;
+    Vector2 bouncePoints[2]; // En fazla 2 sekme noktası
+    Vector2 end = CheckAimLineCollision(start, dir, grid, &bounceCount, bouncePoints);
     
-    // Noktalı çizgi çiz
-    float totalDist = sqrtf(powf(end.x - start.x, 2) + powf(end.y - start.y, 2));
-    int dotCount = (int)(totalDist / 20.0f); // Her 20 pikselde bir nokta
-    float dotSpacing = totalDist / dotCount;
-    
-    for (int i = 1; i <= dotCount; i++) {
-        float t = (float)i / dotCount;
-        Vector2 dotPos = {
-            start.x + (end.x - start.x) * t,
-            start.y + (end.y - start.y) * t
-        };
-        // Noktaların boyutunu mesafeye göre ayarla
-        float dotSize = 5.0f * (1.0f - t * 0.5f); // Uzaktaki noktalar daha küçük
-        DrawCircleV(dotPos, dotSize, GetColor(player->bubble.color));
+    // Her bölüm için noktalı çizgi çiz
+    Vector2 currentStart = start;
+    for (int i = 0; i <= bounceCount; i++) {
+        Vector2 currentEnd = (i < bounceCount) ? bouncePoints[i] : end;
+        DrawDottedLine(currentStart, currentEnd, GetColor(player->bubble.color));
+        currentStart = currentEnd;
     }
 
     // Fırlatılacak balon

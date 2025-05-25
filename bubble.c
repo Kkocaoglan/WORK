@@ -7,7 +7,7 @@ Color GetColor(BubbleColor color) {
     case BUBBLE_GREEN: return GREEN;
     case BUBBLE_BLUE: return BLUE;
     case BUBBLE_YELLOW: return YELLOW;
-    case BUBBLE_PURPLE: return PURPLE;
+    case : return PURPLE;
     default: return BLANK;
     }
 }
