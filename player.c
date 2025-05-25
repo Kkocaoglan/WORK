@@ -105,15 +105,15 @@ static Vector2 CheckAimLineCollision(Vector2 start, Vector2 dir, const BubbleGri
     
     while (current.y > 0 && *bounceCount < 2) { // En fazla 2 sekme
         // Kenarlardan sekme kontrolü
-        if (current.x < BUBBLE_RADIUS) {
-            current.x = BUBBLE_RADIUS;
+        if (current.x < 0) {
+            current.x = 0;
             bouncePoints[*bounceCount] = current;
             dir.x = -dir.x; // Yönü yansıt
             (*bounceCount)++;
             continue;
         }
-        if (current.x > 800 - BUBBLE_RADIUS) {
-            current.x = 800 - BUBBLE_RADIUS;
+        if (current.x > 800) {
+            current.x = 800;
             bouncePoints[*bounceCount] = current;
             dir.x = -dir.x; // Yönü yansıt
             (*bounceCount)++;

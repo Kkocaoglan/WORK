@@ -74,7 +74,6 @@ void UpdateGame(Game* game, GameState* state) {
                 game->score += popped * 50;
                 int dropped = DropFloatingBubbles(&game->grid);
                 if (dropped > 0) game->score += dropped * 100;
-                
                 // Tüm toplar bitti mi kontrolü
                 int totalBalls = 0;
                 for (int r = 0; r < GRID_ROWS; r++) {
@@ -100,6 +99,7 @@ void UpdateGame(Game* game, GameState* state) {
         }
     }
 
+    // Oyun sadece toplar ekranın en alt satırına değdiğinde bitsin
     if (IsGridFull(&game->grid)) {
         game->isGameOver = 1;
         *state = GAME_OVER;

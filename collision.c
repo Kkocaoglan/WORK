@@ -91,7 +91,7 @@ void PlaceBubble(Bubble* bubble, BubbleGrid* grid, int* outRow, int* outCol) {
         }
     }
 
-    // 2. O balonun 6 komşusundan en yakın boş olanı bul
+    // 2. O balonun 6 komşusundan, çarpışma noktasına en yakın boş olanı bul
     int dr[6] = { -1, -1, 0, 0, 1, 1 };
     int dc_even[6] = { -1, 0, -1, 1, -1, 0 };
     int dc_odd[6] = { 0, 1, -1, 1, 0, 1 };
@@ -113,8 +113,7 @@ void PlaceBubble(Bubble* bubble, BubbleGrid* grid, int* outRow, int* outCol) {
             }
         }
     }
-
-    // 3. Eğer uygun bir hücre bulunduysa, balonu oraya yerleştir
+    // Eğer uygun bir komşu boş hücre bulunduysa, balonu oraya yerleştir
     if (bestR != -1 && bestC != -1) {
         grid->bubbles[bestR][bestC].active = 1;
         grid->bubbles[bestR][bestC].color = bubble->color;
@@ -123,7 +122,15 @@ void PlaceBubble(Bubble* bubble, BubbleGrid* grid, int* outRow, int* outCol) {
         if (outRow) *outRow = bestR;
         if (outCol) *outCol = bestC;
     } else {
-        printf("UYARI: Uygun komşu boş hücre bulunamadı!\n");
+        // Eğer komşu boş hücre yoksa, en yakın grid hücresine yerleştir (yedek çözüm)
+        int fallbackR = -1, fallbackC = -1;
+        FindNearestGridCell(grid, bubble->pos, &fallbackR, &fallbackC);
+        grid->bubbles[fallbackR][fallbackC].active = 1;
+        grid->bubbles[fallbackR][fallbackC].color = bubble->color;
+        grid->bubbles[fallbackR][fallbackC].pos = grid->bubbles[fallbackR][fallbackC].pos;
+        printf("Yedek: Balon en yakın grid hücresine yerleştirildi: row=%d, col=%d, renk=%d\n", fallbackR, fallbackC, bubble->color);
+        if (outRow) *outRow = fallbackR;
+        if (outCol) *outCol = fallbackC;
     }
     printf("=== PlaceBubble Bitti ===\n\n");
 }
