@@ -32,63 +32,27 @@ void PlaceBubble(Bubble* bubble, BubbleGrid* grid, int* outRow, int* outCol) {
         bubble->pos.x, bubble->pos.y, bubble->color);
 
     // Eger tavana carptiysa, en ust satirda en yakin bos hucreye yerlestir
-    if (bubble->pos.y <= grid->bubbles[0][0].pos.y + BUBBLE_RADIUS) {
+    if (bubble->pos.y < grid->bubbles[0][0].pos.y + BUBBLE_RADIUS) {
         printf("Tavana carpma tespit edildi\n");
-        // Balonun x pozisyonuna en yakın grid hücresini bul
-        int bestC = 0;
         float minDist = 1e9f;
+        int bestC = 0;
         for (int c = 0; c < GRID_COLS; c++) {
-            float dx = bubble->pos.x - grid->bubbles[0][c].pos.x;
-            float dist = fabsf(dx);
-            if (dist < minDist) {
-                minDist = dist;
-                bestC = c;
-            }
-        }
-        // Eğer en yakın hücre boşsa oraya yerleştir
-        if (!grid->bubbles[0][bestC].active) {
-            grid->bubbles[0][bestC].active = 1;
-            grid->bubbles[0][bestC].color = bubble->color;
-            printf("Balon tavana yerlestirildi: row=0, col=%d\n", bestC);
-            if (outRow) *outRow = 0;
-            if (outCol) *outCol = bestC;
-            printf("=== PlaceBubble Bitti ===\n\n");
-            return;
-        } else {
-            // Yanındaki en yakın boş hücreyi bul
-            int left = bestC - 1;
-            int right = bestC + 1;
-            int found = 0;
-            for (int offset = 1; offset < GRID_COLS && !found; offset++) {
-                if (left >= 0 && !grid->bubbles[0][left].active) {
-                    bestC = left;
-                    found = 1;
-                } else if (right < GRID_COLS && !grid->bubbles[0][right].active) {
-                    bestC = right;
-                    found = 1;
+            if (!grid->bubbles[0][c].active) {
+                float dx = bubble->pos.x - grid->bubbles[0][c].pos.x;
+                float dist = dx * dx;
+                if (dist < minDist) {
+                    minDist = dist;
+                    bestC = c;
                 }
-                left--;
-                right++;
-            }
-            if (found) {
-                grid->bubbles[0][bestC].active = 1;
-                grid->bubbles[0][bestC].color = bubble->color;
-                printf("Balon tavana yerlestirildi (komsuya): row=0, col=%d\n", bestC);
-                if (outRow) *outRow = 0;
-                if (outCol) *outCol = bestC;
-                printf("=== PlaceBubble Bitti ===\n\n");
-                return;
-            } else {
-                // Hiç boş yoksa, fallback: ilk sütuna koy
-                grid->bubbles[0][0].active = 1;
-                grid->bubbles[0][0].color = bubble->color;
-                if (outRow) *outRow = 0;
-                if (outCol) *outCol = 0;
-                printf("Balon tavana fallback ile yerlestirildi: row=0, col=0\n");
-                printf("=== PlaceBubble Bitti ===\n\n");
-                return;
             }
         }
+        grid->bubbles[0][bestC].active = 1;
+        grid->bubbles[0][bestC].color = bubble->color;
+        printf("Balon tavana yerlestirildi: row=0, col=%d\n", bestC);
+        if (outRow) *outRow = 0;
+        if (outCol) *outCol = bestC;
+        printf("=== PlaceBubble Bitti ===\n\n");
+        return;
     }
 
     // 1. Carpisma noktasina en yakin aktif balonu bul
