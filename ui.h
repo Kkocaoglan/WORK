@@ -1,18 +1,28 @@
-#ifndef UI_H  
-#define UI_H  
+#ifndef UI_H
+#define UI_H
 
-// Menü arayüzü  
+#include "raylib.h"
+#include "bubble.h"
+
+// Oyun durumları
+typedef enum {
+    GAME_STATE_MENU,
+    GAME_STATE_PLAYING,
+    GAME_STATE_PAUSED,
+    GAME_STATE_GAME_OVER,
+    GAME_STATE_SETTINGS
+} GameState;
+
+// Menü arayüzü
 void DrawMenuUI(void);
-int UpdateMenuUI(void);
+void DrawSettingsUI(void);
+bool IsStartButtonClicked(void);
+bool IsSettingsButtonClicked(void);
 
-// Skor gösterimi  
-void DrawScoreUI(int score);
-
-// Oyun duraklatma arayüzü  
+// Oyun duraklatma arayüzü
 void DrawPauseUI(void);
 
-// Oyun sonu arayüzü  
+// Oyun sonu arayüzü
 void DrawGameOverUI(int score);
-int UpdateGameOverUI(void);
 
-#endif // UI_H
+#endif //UI_H

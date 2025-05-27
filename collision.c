@@ -7,22 +7,47 @@
 static int explosionInProgress = 0;
 
 // Fırlatılan balonun griddeki balonlara çarpıp çarpmadığını kontrol eder
-int CheckBubbleCollision(const Bubble* bubble, const BubbleGrid* grid) {
+int CheckBubbleCollision(const BubbleGrid* grid, const Bubble* bubble) {
+    // Tavana çarptı mı?
+    if (bubble->pos.y < BUBBLE_RADIUS) return 1;
+
+    // Grid ile çarpışma kontrolü
     for (int r = 0; r < GRID_ROWS; r++) {
         for (int c = 0; c < GRID_COLS; c++) {
             if (grid->bubbles[r][c].active) {
                 float dx = bubble->pos.x - grid->bubbles[r][c].pos.x;
                 float dy = bubble->pos.y - grid->bubbles[r][c].pos.y;
                 float dist = sqrtf(dx * dx + dy * dy);
-                if (dist < BUBBLE_RADIUS * 2 - 2) {
+                if (dist < BUBBLE_RADIUS * 2) {  // Çarpışma mesafesini düzelttim
                     return 1;
                 }
             }
         }
     }
-    // Tavana çarptı mı?
-    if (bubble->pos.y < 60) return 1;
     return 0;
+}
+
+// Yardımcı: Ekran koordinatından grid koordinatına yaklaşık dönüşüm
+static void FindNearestGridCell(BubbleGrid* grid, Vector2 pos, int* outRow, int* outCol) {
+    int bestR = 0, bestC = 0;
+    float minDist = 1e9f;
+    float hex_width = BUBBLE_RADIUS * 2;  // Altıgenin genişliği
+    float hex_height = BUBBLE_RADIUS * 1.73f;  // Altıgenin yüksekliği
+
+    for (int r = 0; r < GRID_ROWS; r++) {
+        for (int c = 0; c < GRID_COLS; c++) {
+            float dx = pos.x - grid->bubbles[r][c].pos.x;
+            float dy = pos.y - grid->bubbles[r][c].pos.y;
+            float dist = dx * dx + dy * dy;
+            if (dist < minDist) {
+                minDist = dist;
+                bestR = r;
+                bestC = c;
+            }
+        }
+    }
+    if (outRow) *outRow = bestR;
+    if (outCol) *outCol = bestC;
 }
 
 // Balonu gridde uygun yere yerleştirir
@@ -30,6 +55,9 @@ void PlaceBubble(Bubble* bubble, BubbleGrid* grid, int* outRow, int* outCol) {
     printf("\n=== PlaceBubble Basladi ===\n");
     printf("Firlatilan balon pozisyonu: x=%.2f, y=%.2f, renk=%d\n",
         bubble->pos.x, bubble->pos.y, bubble->color);
+
+    float hex_width = BUBBLE_RADIUS * 2;  // Altıgenin genişliği
+    float hex_height = BUBBLE_RADIUS * 1.73f;  // Altıgenin yüksekliği
 
     // Eger tavana carptiysa, en ust satirda en yakin bos hucreye yerlestir
     if (bubble->pos.y < grid->bubbles[0][0].pos.y + BUBBLE_RADIUS) {
@@ -260,19 +288,19 @@ int PopConnectedBubbles(BubbleGrid* grid, int row, int col) {
 }
 
 // Patlama durumunu sıfırlama fonksiyonu (yeni top fırlatırken kullanın)
-void ResetExplosionState() {
+void ResetExplosionState(void) {
     explosionInProgress = 0;
     printf("Patlama durumu sıfırlandı.\n");
 }
 
-// Tavana bağlı olmayan balonları BFS ile bulup düşürür
+// Havada kalan balonları düşürür
 int DropFloatingBubbles(BubbleGrid* grid) {
     printf("\n=== DropFloatingBubbles Başladı ===\n");
 
     int visited[GRID_ROWS][GRID_COLS];
     memset(visited, 0, sizeof(visited));
 
-    // BFS ile tavana bağlı olanları işaretle
+    // Üst satırdaki balonlardan başlayarak bağlı balonları işaretle
     int queue[GRID_ROWS * GRID_COLS][2];
     int front = 0, back = 0;
 
@@ -314,7 +342,7 @@ int DropFloatingBubbles(BubbleGrid* grid) {
         }
     }
 
-    // Tavana bağlı olmayan balonları düşür
+    // İşaretlenmemiş balonları düşür
     int dropped = 0;
     printf("Düşürülecek balonlar:\n");
     for (int r = 0; r < GRID_ROWS; r++) {

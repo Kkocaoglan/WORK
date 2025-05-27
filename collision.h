@@ -1,18 +1,21 @@
-#ifndef COLLISION_H  
-#define COLLISION_H  
+#ifndef COLLISION_H
+#define COLLISION_H
 
-#include "bubble.h"  
+#include "bubble.h"
 
-// Fırlatılan balonun griddeki balonlara çarpıp çarpmadığını kontrol eder  
-int CheckBubbleCollision(const Bubble* bubble, const BubbleGrid* grid);
+// Fırlatılan balonun griddeki balonlara çarpıp çarpmadığını kontrol eder
+int CheckBubbleCollision(const BubbleGrid* grid, const Bubble* bubble);
 
-// Balonu gridde uygun yere yerleştirir, yerleştirilen satır ve sütunu döndürür  
+// Balonu gridde uygun yere yerleştirir
 void PlaceBubble(Bubble* bubble, BubbleGrid* grid, int* outRow, int* outCol);
 
-// Bağlantılı balonları verilen konumdan DFS/BFS ile bulup patlatır, patlayan balon sayısını döndürür  
+// Aynı renkteki bağlı balonları patlatır
 int PopConnectedBubbles(BubbleGrid* grid, int row, int col);
 
-// Tavana bağlı olmayan balonları düşürür, düşen balon sayısını döndürür  
+// Havada kalan balonları düşürür
 int DropFloatingBubbles(BubbleGrid* grid);
 
-#endif // COLLISION_H
+// Patlama durumunu sıfırlar
+void ResetExplosionState(void);
+
+#endif //COLLISION_H
