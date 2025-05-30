@@ -1,46 +1,47 @@
-#ifndef BUBBLE_H  
-#define BUBBLE_H  
+#ifndef BUBBLE_H
+#define BUBBLE_H
 
-#include "raylib.h"  
+#include "raylib.h"
 
-// Grid boyutları ve balon yarıçapı  
-#define GRID_ROWS 8  
-#define GRID_COLS 19  
+// Grid boyutları
+#define GRID_ROWS 8
+#define GRID_COLS 19
 #define BUBBLE_RADIUS 20
+#define BUBBLE_COLORS 5
 
-// Balon renkleri  
-typedef enum {  
-   BUBBLE_NONE = -1,  
-   BUBBLE_RED,  
-   BUBBLE_GREEN,  
-   BUBBLE_BLUE,  
-   BUBBLE_YELLOW,  
-   BUBBLE_PURPLE,  
-   NUM_COLORS  
-} BubbleColor;  
+// Balon renkleri
+typedef enum {
+    BUBBLE_RED,
+    BUBBLE_GREEN,
+    BUBBLE_BLUE,
+    BUBBLE_YELLOW,
+    BUBBLE_PURPLE,
+    BUBBLE_NONE
+} BubbleColor;
 
-#define BUBBLE_COLORS NUM_COLORS  
+// Balon yapısı
+typedef struct {
+    Vector2 pos;
+    BubbleColor color;
+    bool active;
+} Bubble;
 
-// Tek bir balonun yapısı  
-typedef struct {  
-   Vector2 pos;         // Ekrandaki konumu  
-   Vector2 velocity;  
-   BubbleColor color;   // Rengi  
-   int active;          // Aktif mi?  
-} Bubble;  
+// Balon ızgarası yapısı
+typedef struct {
+    Bubble bubbles[GRID_ROWS][GRID_COLS];
+} BubbleGrid;
 
-// Altıgen grid yapısı  
-typedef struct {  
-   Bubble bubbles[GRID_ROWS][GRID_COLS];  
-} BubbleGrid;  
+// Fonksiyon prototipleri
+void InitBubbleGrid(BubbleGrid* grid);
+void DrawBubbleGrid(const BubbleGrid* grid);
+void DrawBubble(Bubble* bubble);
+void DrawShooter(float angle, BubbleColor color);
+void UnloadBubbleGrid(BubbleGrid* grid);
+int IsGridFull(const BubbleGrid* grid);
+Color GetColor(BubbleColor color);
+void CreateExplosionParticle(BubbleGrid* grid, Vector2 pos, Color color);
+void UpdateParticles(void);
+void DrawParticles(void);
+void ExplodeAllBubbles(BubbleGrid* grid);
 
-// Fonksiyon prototipleri  
-void InitBubbleGrid(BubbleGrid* grid);  
-void DrawBubbleGrid(BubbleGrid* grid);  
-void DrawBubble(Bubble* bubble);  
-void DrawShooter(float angle, BubbleColor color);  
-void UnloadBubbleGrid(BubbleGrid* grid);  
-int IsGridFull(const BubbleGrid* grid);  
-Color GetColor(BubbleColor color); // Balon rengine karşılık gelen Raylib Color  
-
-#endif //BUBLE_H
+#endif // BUBBLE_H

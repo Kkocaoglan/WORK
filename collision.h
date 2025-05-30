@@ -18,4 +18,7 @@ int DropFloatingBubbles(BubbleGrid* grid);
 // Patlama durumunu sıfırlar
 void ResetExplosionState(void);
 
-#endif //COLLISION_H
+// Bağlı topları bul
+void FindConnectedBubbles(BubbleGrid* grid, int row, int col, BubbleColor color, bool visited[GRID_ROWS][GRID_COLS], int* matchCount, int matches[][2]);
+
+#endif // COLLISION_H

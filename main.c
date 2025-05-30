@@ -12,6 +12,18 @@ int main(void) {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Balon Patlat");
     SetTargetFPS(60);
 
+    // Raylib ses sistemini başlat
+    InitAudioDevice();
+
+    // Arka plan müziğini yükle ve başlat
+    Music backgroundMusic = LoadMusicStream("resources/sounds/rainyday.wav");
+
+    // Müzik yüklendi mi kontrol et
+    if (backgroundMusic.stream.buffer != NULL) {
+        SetMusicVolume(backgroundMusic, 0.5f);  // Ses seviyesi %50
+        PlayMusicStream(backgroundMusic);
+    }
+
     // Oyun durumunu başlat
     GameState gameState = GAME_STATE_MENU;
     Game game;
@@ -19,6 +31,18 @@ int main(void) {
 
     // Ana döngü
     while (!WindowShouldClose()) {
+        float deltaTime = GetFrameTime();
+
+        // Müziği güncelle (ÖNEMLİ - her frame'de çağırılmalı!)
+        if (backgroundMusic.stream.buffer != NULL) {
+            UpdateMusicStream(backgroundMusic);
+
+            // Müzik bitti mi? Tekrar başlat (döngü için)
+            if (!IsMusicStreamPlaying(backgroundMusic)) {
+                PlayMusicStream(backgroundMusic);
+            }
+        }
+
         // Oyun durumu yönetimi
         switch (gameState) {
         case GAME_STATE_MENU:
@@ -29,26 +53,33 @@ int main(void) {
                 gameState = GAME_STATE_SETTINGS;
             }
             break;
+
         case GAME_STATE_SETTINGS:
             if (IsKeyPressed(KEY_ESCAPE)) {
                 gameState = GAME_STATE_MENU;
             }
             break;
+
         case GAME_STATE_PLAYING:
-            UpdateGame(&game, &gameState);
+            UpdateGame(&game);
             if (IsKeyPressed(KEY_P)) {
                 gameState = GAME_STATE_PAUSED;
             }
+            if (game.gameOver) {
+                gameState = GAME_STATE_GAME_OVER;
+            }
             break;
+
         case GAME_STATE_PAUSED:
             if (IsKeyPressed(KEY_P)) {
                 gameState = GAME_STATE_PLAYING;
             }
             break;
+
         case GAME_STATE_GAME_OVER:
-            if (IsKeyPressed(KEY_SPACE)) {
+            if (IsRestartButtonClicked()) {
                 InitGame(&game);
-                gameState = GAME_STATE_MENU;
+                gameState = GAME_STATE_PLAYING;
             }
             break;
         }
@@ -61,17 +92,21 @@ int main(void) {
         case GAME_STATE_MENU:
             DrawMenuUI();
             break;
+
         case GAME_STATE_SETTINGS:
             DrawMenuUI();  // Arka plan için
             DrawSettingsUI();
             break;
+
         case GAME_STATE_PLAYING:
             DrawGame(&game);
             break;
+
         case GAME_STATE_PAUSED:
             DrawGame(&game);
             DrawPauseUI();
             break;
+
         case GAME_STATE_GAME_OVER:
             DrawGame(&game);
             DrawGameOverUI(game.score);
@@ -81,9 +116,12 @@ int main(void) {
         EndDrawing();
     }
 
-    // Oyunu temizle
+    // Temizlik
+    if (backgroundMusic.stream.buffer != NULL) {
+        UnloadMusicStream(backgroundMusic);
+    }
+    CloseAudioDevice();
     UnloadGame(&game);
     CloseWindow();
-
     return 0;
 }

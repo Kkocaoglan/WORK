@@ -4,6 +4,64 @@
 
 #define PI 3.14159265358979323846
 
+// Parçacık yapısı
+typedef struct {
+    Vector2 pos;
+    Vector2 velocity;
+    Color color;
+    float life;
+    bool active;
+} Particle;
+
+#define MAX_PARTICLES 1000
+static Particle particles[MAX_PARTICLES];
+
+// Parçacık oluştur
+void CreateExplosionParticle(BubbleGrid* grid, Vector2 pos, Color color) {
+    // Boş parçacık bul
+    for (int i = 0; i < MAX_PARTICLES; i++) {
+        if (!particles[i].active) {
+            particles[i].pos = pos;
+            particles[i].color = color;
+            particles[i].life = 1.0f;
+            particles[i].active = true;
+
+            // Rastgele yön ve hız
+            float angle = (float)rand() / RAND_MAX * 2 * PI;
+            float speed = 2.0f + (float)rand() / RAND_MAX * 3.0f;
+            particles[i].velocity.x = cosf(angle) * speed;
+            particles[i].velocity.y = sinf(angle) * speed;
+            break;
+        }
+    }
+}
+
+// Parçacıkları güncelle
+void UpdateParticles(void) {
+    for (int i = 0; i < MAX_PARTICLES; i++) {
+        if (particles[i].active) {
+            particles[i].pos.x += particles[i].velocity.x;
+            particles[i].pos.y += particles[i].velocity.y;
+            particles[i].life -= 0.02f;
+
+            if (particles[i].life <= 0) {
+                particles[i].active = false;
+            }
+        }
+    }
+}
+
+// Parçacıkları çiz
+void DrawParticles(void) {
+    for (int i = 0; i < MAX_PARTICLES; i++) {
+        if (particles[i].active) {
+            Color particleColor = particles[i].color;
+            particleColor.a = (unsigned char)(particles[i].life * 255);
+            DrawCircleV(particles[i].pos, 2, particleColor);
+        }
+    }
+}
+
 // Balon rengine karşılık gelen Raylib Color
 Color GetColor(BubbleColor color) {
     switch (color) {
@@ -12,7 +70,7 @@ Color GetColor(BubbleColor color) {
     case BUBBLE_BLUE: return (Color) { 0, 0, 255, 255 };     // Mavi
     case BUBBLE_YELLOW: return (Color) { 255, 255, 0, 255 }; // Sarı
     case BUBBLE_PURPLE: return (Color) { 128, 0, 128, 255 }; // Mor
-    case BUBBLE_NONE: return (Color) { 255, 255, 255, 255 }; // Beyaz
+    case BUBBLE_NONE: return (Color) { 0, 0, 0, 255 };       // Siyah
     default: return (Color) { 255, 255, 255, 255 };          // Varsayılan beyaz
     }
 }
@@ -120,4 +178,33 @@ int IsGridFull(const BubbleGrid* grid) {
         if (grid->bubbles[GRID_ROWS - 1][c].active) return 1;
     }
     return 0;
+}
+
+// Tüm balonları patlat
+void ExplodeAllBubbles(BubbleGrid* grid) {
+    for (int r = 0; r < GRID_ROWS; r++) {
+        for (int c = 0; c < GRID_COLS; c++) {
+            if (grid->bubbles[r][c].active) {
+                // Her balon için 4 parçacık oluştur
+                Vector2 pos = grid->bubbles[r][c].pos;
+                Color color = GetColor(grid->bubbles[r][c].color);
+
+                // Farklı yönlerde parçacıklar
+                for (int i = 0; i < 4; i++) {
+                    float angle = i * (PI / 2);
+                    Vector2 offset = {
+                        cosf(angle) * BUBBLE_RADIUS * 0.5f,
+                        sinf(angle) * BUBBLE_RADIUS * 0.5f
+                    };
+                    Vector2 particlePos = {
+                        pos.x + offset.x,
+                        pos.y + offset.y
+                    };
+                    CreateExplosionParticle(grid, particlePos, color);
+                }
+
+                grid->bubbles[r][c].active = false;
+            }
+        }
+    }
 }

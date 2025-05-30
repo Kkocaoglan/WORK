@@ -1,13 +1,18 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "player.h"
-#include <math.h>
-#include <stdlib.h>
 #include "raylib.h"
 #include "bubble.h"
+#include <math.h>
+#include <stdio.h>
 
+// Sabitler
 #define PLAYER_Y 550
 #define MIN_ANGLE 0.0f
 #define MAX_ANGLE 180.0f
-#define BUBBLE_SPEED 15.0f
+#define BUBBLE_SPEED 8.0f
+#define BOMB_BUTTON_SIZE 40
+#define BOMB_BUTTON_MARGIN 60
+#define MAX_MOVES 80
 
 // Oyuncu başlatılır
 void InitPlayer(Player* player) {
@@ -15,8 +20,27 @@ void InitPlayer(Player* player) {
     player->angle = 90.0f;
     player->shooting = 0;
     player->bubble.active = 1;
-    player->bubble.color = (BubbleColor)(rand() % BUBBLE_COLORS);
+
+    // İlk topun rengini seç (siyah hariç)
+    int availableColors[BUBBLE_COLORS - 1];  // Siyah hariç renkler için dizi
+    int colorCount = 0;
+
+    // Siyah hariç tüm renkleri diziye ekle
+    for (int i = 0; i < BUBBLE_COLORS; i++) {
+        if (i != BUBBLE_NONE) {
+            availableColors[colorCount++] = i;
+        }
+    }
+
+    // Rastgele bir renk seç
+    int randomIndex = GetRandomValue(0, colorCount - 1);
+    player->bubble.color = (BubbleColor)availableColors[randomIndex];
+
     player->bubble.pos = player->pos;
+    player->bombCount = 3;
+    player->canUseBomb = true;
+    player->score = 0;
+    player->bombActive = false;
 }
 
 // Yeni balon hazırla
@@ -27,8 +51,8 @@ void NextBubble(Player* player, const BubbleGrid* grid) {
     // Ekranda kalan top sayısını hesapla
     int remainingBubblesOnScreen = 0;
     int colorCounts[BUBBLE_COLORS] = { 0 };
-    int availableColors = 0;  // Kullanılabilir renk sayısı
-    int availableColorIndices[BUBBLE_COLORS] = { 0 };  // Kullanılabilir renklerin indeksleri
+    int availableColors[BUBBLE_COLORS - 1] = { 0 };  // Siyah hariç renkler
+    int availableColorCount = 0;
 
     // Ekrandaki topları say
     for (int r = 0; r < GRID_ROWS; r++) {
@@ -42,18 +66,17 @@ void NextBubble(Player* player, const BubbleGrid* grid) {
 
     // Eğer ekranda 15 veya daha az top varsa, akıllı renk seçimi yap
     if (remainingBubblesOnScreen <= 15) {
-        // Önce kullanılabilir renkleri bul
+        // Mevcut renkleri bul
         for (int i = 0; i < BUBBLE_COLORS; i++) {
-            if (colorCounts[i] > 0) {
-                availableColorIndices[availableColors] = i;
-                availableColors++;
+            if (i != BUBBLE_NONE && colorCounts[i] > 0) {
+                availableColors[availableColorCount++] = i;
             }
         }
 
         // Eğer kullanılabilir renk varsa, onlardan birini seç
-        if (availableColors > 0) {
-            int randomIndex = rand() % availableColors;
-            player->bubble.color = (BubbleColor)availableColorIndices[randomIndex];
+        if (availableColorCount > 0) {
+            int randomIndex = GetRandomValue(0, availableColorCount - 1);
+            player->bubble.color = (BubbleColor)availableColors[randomIndex];
         }
         else {
             // Hiç renk kalmadıysa varsayılan olarak kırmızı rengi seç
@@ -61,8 +84,20 @@ void NextBubble(Player* player, const BubbleGrid* grid) {
         }
     }
     else {
-        // Normal rastgele renk seçimi
-        player->bubble.color = (BubbleColor)(rand() % BUBBLE_COLORS);
+        // Normal rastgele renk seçimi (siyah hariç)
+        int availableColors[BUBBLE_COLORS - 1];  // Siyah hariç renkler için dizi
+        int colorCount = 0;
+
+        // Siyah hariç tüm renkleri diziye ekle
+        for (int i = 0; i < BUBBLE_COLORS; i++) {
+            if (i != BUBBLE_NONE) {
+                availableColors[colorCount++] = i;
+            }
+        }
+
+        // Rastgele bir renk seç
+        int randomIndex = GetRandomValue(0, colorCount - 1);
+        player->bubble.color = (BubbleColor)availableColors[randomIndex];
     }
 
     player->bubble.pos = player->pos;
@@ -72,49 +107,162 @@ void NextBubble(Player* player, const BubbleGrid* grid) {
 // Mouse pozisyonundan açı hesapla
 float CalculateAngleFromMouse(Vector2 mousePos, Vector2 playerPos) {
     float dx = mousePos.x - playerPos.x;
-    float dy = playerPos.y - mousePos.y; // Y koordinatı ters olduğu için çıkarma yapıyoruz
+    float dy = playerPos.y - mousePos.y;
     float angle = atan2f(dy, dx) * (180.0f / PI);
 
-    // Açıyı sınırla
     if (angle < MIN_ANGLE) angle = MIN_ANGLE;
     if (angle > MAX_ANGLE) angle = MAX_ANGLE;
 
     return angle;
 }
 
+// Bomba kullan
+void UseBomb(Player* player) {
+    if (player->bombCount > 0 && player->canUseBomb) {
+        // Eğer top siyah değilse, bombayı kullan
+        if (player->bubble.color != BUBBLE_NONE) {
+            player->bombCount--;
+            player->bubble.color = BUBBLE_NONE;  // Mevcut topun rengini siyah yap
+        }
+    }
+}
+
+// Bomba patlaması ve yakındaki topları yok etme
+void HandleBombExplosion(Player* player, BubbleGrid* grid, Vector2 hitPos) {
+    const float EXPLOSION_RADIUS = BUBBLE_RADIUS * 3.0f;
+
+    for (int r = 0; r < GRID_ROWS; r++) {
+        for (int c = 0; c < GRID_COLS; c++) {
+            if (grid->bubbles[r][c].active) {
+                Vector2 bubblePos = grid->bubbles[r][c].pos;
+                float dx = bubblePos.x - hitPos.x;
+                float dy = bubblePos.y - hitPos.y;
+                float distance = sqrtf(dx * dx + dy * dy);
+
+                if (distance <= EXPLOSION_RADIUS) {
+                    grid->bubbles[r][c].active = 0;
+                    player->score += 10;
+                }
+            }
+        }
+    }
+}
+
+// Bağlı topları bul
+static void FindConnectedBubbles(BubbleGrid* grid, int startRow, int startCol, BubbleColor color,
+    bool visited[GRID_ROWS][GRID_COLS], int* matchCount, int matches[][2]) {
+    if (visited[startRow][startCol] ||
+        !grid->bubbles[startRow][startCol].active ||
+        grid->bubbles[startRow][startCol].color != color) {
+        return;
+    }
+
+    visited[startRow][startCol] = true;
+    matches[*matchCount][0] = startRow;
+    matches[*matchCount][1] = startCol;
+    (*matchCount)++;
+
+    int directions[4][2] = {
+        {-1, 0},  // yukarı
+        {1, 0},   // aşağı
+        {0, -1},  // sol
+        {0, 1}    // sağ
+    };
+
+    for (int i = 0; i < 4; i++) {
+        int nr = startRow + directions[i][0];
+        int nc = startCol + directions[i][1];
+
+        if (nr >= 0 && nr < GRID_ROWS && nc >= 0 && nc < GRID_COLS) {
+            FindConnectedBubbles(grid, nr, nc, color, visited, matchCount, matches);
+        }
+    }
+}
+
+// Bomba butonunu çiz
+void DrawBombButton(const Player* player) {
+    Vector2 buttonPos = {
+        player->pos.x + BUBBLE_RADIUS + BOMB_BUTTON_MARGIN,
+        player->pos.y
+    };
+
+    Color buttonColor = player->bombCount > 0 ? RED : GRAY;
+    DrawCircleV(buttonPos, BOMB_BUTTON_SIZE / 2, buttonColor);
+    DrawCircleLinesV(buttonPos, BOMB_BUTTON_SIZE / 2, BLACK);
+
+    float iconSize = BOMB_BUTTON_SIZE / 3;
+    DrawLineEx(
+        (Vector2) {
+        buttonPos.x - iconSize, buttonPos.y - iconSize
+    },
+        (Vector2) {
+        buttonPos.x + iconSize, buttonPos.y + iconSize
+    },
+        3, WHITE
+    );
+    DrawLineEx(
+        (Vector2) {
+        buttonPos.x + iconSize, buttonPos.y - iconSize
+    },
+        (Vector2) {
+        buttonPos.x - iconSize, buttonPos.y + iconSize
+    },
+        3, WHITE
+    );
+
+    char bombText[8];
+    sprintf(bombText, "%d", player->bombCount);
+    int textWidth = MeasureText(bombText, 20);
+    DrawText(bombText,
+        buttonPos.x - textWidth / 2,
+        buttonPos.y + BOMB_BUTTON_SIZE / 2 + 5,
+        20, WHITE);
+}
+
 // Oyuncu kontrolü ve balon fırlatma
-void UpdatePlayer(Player* player, const BubbleGrid* grid) {
+void UpdatePlayer(Player* player, BubbleGrid* grid) {
     if (!player->shooting) {
-        // Mouse pozisyonundan açı hesapla
         Vector2 mousePos = GetMousePosition();
         float mouseAngle = CalculateAngleFromMouse(mousePos, player->pos);
 
-        // Klavye ile açı değişimi
         float angleChange = 0.0f;
         if (IsKeyDown(KEY_LEFT)) angleChange -= 2.0f;
         if (IsKeyDown(KEY_RIGHT)) angleChange += 2.0f;
 
-        // Mouse ve klavye açılarını birleştir
         if (angleChange != 0.0f) {
-            // Klavye ile değişim varsa, mevcut açıyı değiştir
             player->angle += angleChange;
         }
         else {
-            // Klavye ile değişim yoksa, mouse açısını kullan
-            // Ancak ani değişimleri önlemek için yumuşak geçiş yap
             float angleDiff = mouseAngle - player->angle;
             if (fabsf(angleDiff) > 180.0f) {
                 if (angleDiff > 0) angleDiff -= 360.0f;
                 else angleDiff += 360.0f;
             }
-            player->angle += angleDiff * 0.2f; // Yumuşak geçiş için 0.2 çarpanı
+            player->angle += angleDiff * 0.2f;
         }
 
-        // Açı sınırlaması
         if (player->angle < MIN_ANGLE) player->angle = MIN_ANGLE;
         if (player->angle > MAX_ANGLE) player->angle = MAX_ANGLE;
 
-        // Fırlatma (hem mouse hem klavye ile)
+        Vector2 buttonPos = {
+            player->pos.x + BUBBLE_RADIUS + BOMB_BUTTON_MARGIN,
+            player->pos.y
+        };
+
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            Rectangle bombButton = {
+                buttonPos.x - BOMB_BUTTON_SIZE / 2,
+                buttonPos.y - BOMB_BUTTON_SIZE / 2,
+                BOMB_BUTTON_SIZE,
+                BOMB_BUTTON_SIZE
+            };
+
+            if (CheckCollisionPointRec(mousePos, bombButton)) {
+                UseBomb(player);
+                return;
+            }
+        }
+
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsKeyPressed(KEY_SPACE)) {
             player->shooting = 1;
             float rad = player->angle * (PI / 180.0f);
@@ -124,10 +272,9 @@ void UpdatePlayer(Player* player, const BubbleGrid* grid) {
         }
     }
     else {
-        // Fırlatılan balonun hareketi
         player->bubble.pos.x += player->velocity.x;
         player->bubble.pos.y += player->velocity.y;
-        // Kenarlardan sekme
+
         if (player->bubble.pos.x < BUBBLE_RADIUS) {
             player->bubble.pos.x = BUBBLE_RADIUS;
             player->velocity.x *= -1;
@@ -136,20 +283,19 @@ void UpdatePlayer(Player* player, const BubbleGrid* grid) {
             player->bubble.pos.x = 800 - BUBBLE_RADIUS;
             player->velocity.x *= -1;
         }
+        // Çarpışma ve patlatma mantığı artık sadece collision.c'de olacak!
+        // Burada sadece balonun hareketi var.
     }
 }
 
-// Tek bir ray'in çarpışma kontrolü (balonlar için)
+// Nişan çizgisi için yardımcı fonksiyonlar
 static int CheckRayBubbleCollision(Vector2 start, Vector2 dir, const BubbleGrid* grid, Vector2* hitPoint) {
-    float step = 2.0f; // Küçük adımlarla ilerle
+    float step = 2.0f;
     Vector2 current = start;
-
-    // Maksimum mesafe (ekran boyutu + biraz marj)
     float maxDistance = 1000.0f;
     float traveled = 0.0f;
 
     while (traveled < maxDistance && current.y > 0) {
-        // Balonlarla çarpışma kontrolü
         for (int r = 0; r < GRID_ROWS; r++) {
             for (int c = 0; c < GRID_COLS; c++) {
                 if (grid->bubbles[r][c].active) {
@@ -158,42 +304,37 @@ static int CheckRayBubbleCollision(Vector2 start, Vector2 dir, const BubbleGrid*
                     float dist = sqrtf(dx * dx + dy * dy);
                     if (dist < BUBBLE_RADIUS * 2) {
                         *hitPoint = current;
-                        return 1; // Çarpışma bulundu
+                        return 1;
                     }
                 }
             }
         }
 
-        // Bir sonraki noktaya ilerle
         current.x += dir.x * step;
         current.y += dir.y * step;
         traveled += step;
     }
 
-    // Tavana çarptıysa veya maksimum mesafeye ulaştıysa
     *hitPoint = current;
-    return 0; // Balon çarpışması yok
+    return 0;
 }
 
-// Nişan çizgisinin tam yolu hesapla
 static void CalculateAimPath(Vector2 start, Vector2 initialDir, const BubbleGrid* grid,
     Vector2* segments, int* segmentCount) {
     Vector2 currentStart = start;
     Vector2 currentDir = initialDir;
     *segmentCount = 0;
-    int maxBounces = 3; // Maksimum sekme sayısı
+    int maxBounces = 3;
 
-    segments[(*segmentCount)++] = currentStart; // İlk nokta
+    segments[(*segmentCount)++] = currentStart;
 
     for (int bounce = 0; bounce <= maxBounces; bounce++) {
         Vector2 hitPoint;
         int hitBubble = CheckRayBubbleCollision(currentStart, currentDir, grid, &hitPoint);
 
-        // Duvar çarpışması kontrolü
         float wallHitX = -1;
         float wallHitY = -1;
 
-        // Sol duvar
         if (currentDir.x < 0) {
             float t = (BUBBLE_RADIUS - currentStart.x) / currentDir.x;
             if (t > 0) {
@@ -204,7 +345,6 @@ static void CalculateAimPath(Vector2 start, Vector2 initialDir, const BubbleGrid
                 }
             }
         }
-        // Sağ duvar
         else if (currentDir.x > 0) {
             float t = (800 - BUBBLE_RADIUS - currentStart.x) / currentDir.x;
             if (t > 0) {
@@ -218,7 +358,6 @@ static void CalculateAimPath(Vector2 start, Vector2 initialDir, const BubbleGrid
             }
         }
 
-        // En yakın çarpışmayı belirle
         int hitWall = 0;
         Vector2 finalHit = hitPoint;
 
@@ -233,37 +372,30 @@ static void CalculateAimPath(Vector2 start, Vector2 initialDir, const BubbleGrid
             }
         }
 
-        // Segment bitiş noktasını ekle
         segments[(*segmentCount)++] = finalHit;
 
-        // Balona çarptıysa dur
         if (hitBubble) {
             break;
         }
 
-        // Duvara çarptıysa sekme hesapla
         if (hitWall) {
             currentStart = finalHit;
-            currentDir.x = -currentDir.x; // X yönünü tersine çevir
-            // Bir sonraki segment başlangıcı
-            if (*segmentCount < 10) { // Array sınırını kontrol et
+            currentDir.x = -currentDir.x;
+            if (*segmentCount < 10) {
                 segments[(*segmentCount)++] = currentStart;
             }
         }
         else {
-            // Tavana çarptıysa dur
             break;
         }
 
-        // Array sınırını kontrol et
-        if (*segmentCount >= 9) break; // 10 elemanlı array için
+        if (*segmentCount >= 9) break;
     }
 }
 
-// Noktalı çizgi çizme yardımcı fonksiyonu
 static void DrawDottedLine(Vector2 start, Vector2 end, Color color) {
     float totalDist = sqrtf(powf(end.x - start.x, 2) + powf(end.y - start.y, 2));
-    int dotCount = (int)(totalDist / 15.0f); // Her 15 pikselde bir nokta
+    int dotCount = (int)(totalDist / 15.0f);
 
     if (dotCount == 0) return;
 
@@ -273,33 +405,28 @@ static void DrawDottedLine(Vector2 start, Vector2 end, Color color) {
             start.x + (end.x - start.x) * t,
             start.y + (end.y - start.y) * t
         };
-        // Noktaların boyutunu mesafeye göre ayarla
-        float dotSize = 4.0f * (1.0f - t * 0.3f); // Uzaktaki noktalar daha küçük
+        float dotSize = 4.0f * (1.0f - t * 0.3f);
         DrawCircleV(dotPos, dotSize, color);
     }
 }
 
 // Oyuncu ve nişangahı çizer
 void DrawPlayer(const Player* player, const BubbleGrid* grid) {
-    // Nişan çizgisi için yön vektörü
     float rad = player->angle * (PI / 180.0f);
     Vector2 start = player->pos;
     Vector2 dir = { cosf(rad), -sinf(rad) };
 
-    // Tam yolu hesapla
-    Vector2 segments[10]; // Maksimum 10 nokta (başlangıç + sekmeler + bitiş)
+    Vector2 segments[10];
     int segmentCount;
     CalculateAimPath(start, dir, grid, segments, &segmentCount);
 
-    // Her segment için noktalı çizgi çiz
     Color aimColor = GetColor(player->bubble.color);
-    aimColor.a = 180; // Biraz şeffaf yap
+    aimColor.a = 180;
 
     for (int i = 0; i < segmentCount - 1; i++) {
         DrawDottedLine(segments[i], segments[i + 1], aimColor);
     }
 
-    // Fırlatılacak balon
     if (!player->shooting) {
         DrawCircleV(player->pos, BUBBLE_RADIUS, LIGHTGRAY);
         DrawCircleV(player->pos, BUBBLE_RADIUS - 2, GetColor(player->bubble.color));
@@ -307,6 +434,8 @@ void DrawPlayer(const Player* player, const BubbleGrid* grid) {
     else {
         DrawCircleV(player->bubble.pos, BUBBLE_RADIUS, GetColor(player->bubble.color));
     }
+
+    DrawBombButton(player);
 }
 
 // Oyuncu temizleme

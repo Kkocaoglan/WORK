@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "raylib.h"
 #include "ui.h"
+#include "game.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -9,6 +10,7 @@
 #define BUTTON_HEIGHT 60
 #define SETTINGS_ICON_SIZE 40
 #define SETTINGS_ICON_PADDING 20
+#define MAX_MOVES 80
 
 typedef struct {
     Vector2 pos;
@@ -21,6 +23,7 @@ static MenuBubble menuBubbles[MENU_BUBBLE_COUNT];
 static bool initialized = false;
 static Rectangle startButton;
 static Rectangle settingsButton;
+static Rectangle restartButton;
 
 // Renk tanımlamaları
 #define LIGHT_PINK (Color){ 255, 192, 203, 255 }
@@ -225,9 +228,58 @@ void DrawGameOverUI(int score) {
     int scoreWidth = MeasureText(scoreText, scoreSize);
     DrawText(scoreText, (GetScreenWidth() - scoreWidth) / 2, 280, scoreSize, DARK_PINK);
 
-    // Yeniden başlatma mesajı
-    const char* restartMsg = "Press SPACE to Restart";
-    int msgSize = 30;
-    int msgWidth = MeasureText(restartMsg, msgSize);
-    DrawText(restartMsg, (GetScreenWidth() - msgWidth) / 2, 350, msgSize, DARK_PINK);
+    // Restart butonu
+    restartButton = (Rectangle){
+        (GetScreenWidth() - BUTTON_WIDTH) / 2,
+        350,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT
+    };
+
+    // Buton arka planı
+    DrawRectangleRec(restartButton, DARK_PINK);
+
+    // Buton kenarlığı
+    DrawRectangleLinesEx(restartButton, 2, WHITE);
+
+    // Buton yazısı
+    const char* buttonText = "RESTART";
+    int buttonTextSize = 30;
+    int buttonTextWidth = MeasureText(buttonText, buttonTextSize);
+    DrawText(buttonText,
+        restartButton.x + (BUTTON_WIDTH - buttonTextWidth) / 2,
+        restartButton.y + (BUTTON_HEIGHT - buttonTextSize) / 2,
+        buttonTextSize,
+        WHITE);
+}
+
+// Restart butonuna tıklandı mı kontrolü
+bool IsRestartButtonClicked(void) {
+    return IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+        CheckCollisionPointRec(GetMousePosition(), restartButton);
+}
+
+// Oyun arayüzü
+void DrawUI(const Game* game) {
+    // Kalan hamle sayısı
+    char movesText[32];
+    sprintf(movesText, "Kalan Hamle: %d", MAX_MOVES - game->moves);
+    DrawText(movesText, 10, 10, 20, WHITE);
+
+    // Duraklatma butonu
+    Rectangle pauseButton = { GetScreenWidth() - 50, 10, 40, 40 };
+    DrawRectangleRec(pauseButton, DARK_PINK);
+    DrawRectangleLinesEx(pauseButton, 2, WHITE);
+
+    // Duraklatma simgesi
+    float centerX = pauseButton.x + pauseButton.width / 2;
+    float centerY = pauseButton.y + pauseButton.height / 2;
+    float barWidth = 8;
+    float barHeight = 20;
+    float gap = 4;
+
+    // Sol çubuk
+    DrawRectangle(centerX - barWidth - gap / 2, centerY - barHeight / 2, barWidth, barHeight, WHITE);
+    // Sağ çubuk
+    DrawRectangle(centerX + gap / 2, centerY - barHeight / 2, barWidth, barHeight, WHITE);
 }

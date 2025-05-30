@@ -3,6 +3,8 @@
 #include "raylib.h"
 #include "collision.h"
 #include "bubble.h"
+#include "player.h"
+#include "ui.h"
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
@@ -15,36 +17,6 @@
 #define LIGHT_PINK CLITERAL(Color){ 255, 192, 203, 255 }
 #define WHITE CLITERAL(Color){ 255, 255, 255, 255 }
 #define MAX_MOVES 80
-
-// Bir topun yanında aynı renkte başka top var mı kontrol et
-static bool HasMatchingNeighbor(const BubbleGrid* grid, int row, int col) {
-    BubbleColor color = grid->bubbles[row][col].color;
-
-    // Komşu pozisyonları kontrol et
-    int neighbors[6][2] = {
-        {row - 1, col},    // üst
-        {row - 1, col + 1},  // üst sağ
-        {row, col + 1},    // sağ
-        {row + 1, col},    // alt
-        {row + 1, col - 1},  // alt sol
-        {row, col - 1}     // sol
-    };
-
-    for (int i = 0; i < 6; i++) {
-        int r = neighbors[i][0];
-        int c = neighbors[i][1];
-
-        // Geçerli pozisyon mu kontrol et
-        if (r >= 0 && r < GRID_ROWS && c >= 0 && c < GRID_COLS) {
-            // Aynı renkte ve aktif bir top var mı?
-            if (grid->bubbles[r][c].active && grid->bubbles[r][c].color == color) {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
 
 // Oyun sonu kontrolü
 static bool IsGameOver(const BubbleGrid* grid) {
@@ -63,80 +35,53 @@ void InitGame(Game* game) {
     game->moves = 0;
     game->gameOver = false;
     game->paused = false;
-
     InitBubbleGrid(&game->grid);
     InitPlayer(&game->player);
 }
 
 // Oyunu güncelle
-void UpdateGame(Game* game, GameState* gameState) {
-    if (game->paused) {
-        *gameState = GAME_STATE_PAUSED;
-        return;
-    }
+void UpdateGame(Game* game) {
+    if (!game->paused && !game->gameOver) {
+        UpdatePlayer(&game->player, &game->grid);
+        UpdateParticles();  // Parçacıkları güncelle
 
-    if (game->gameOver) {
-        *gameState = GAME_STATE_GAME_OVER;
-        return;
-    }
-
-    // Oyuncuyu güncelle
-    game->player.moves = game->moves;  // Hamle sayısını oyuncuya aktar
-    UpdatePlayer(&game->player, &game->grid);
-
-    // Çarpışma kontrolü
-    if (game->player.shooting) {
-        if (CheckBubbleCollision(&game->grid, &game->player.bubble)) {
-            // Hamle sayısını artır
-            game->moves++;
-
-            // Baloncuk yerleştirildi
-            int row, col;
-            PlaceBubble(&game->player.bubble, &game->grid, &row, &col);
-
-            // Patlama kontrolü
-            int popped = PopConnectedBubbles(&game->grid, row, col);
-            if (popped > 0) {
-                game->score += popped * 10;
+        // Fırlatılan balonun çarpışma kontrolü
+        if (game->player.shooting) {
+            if (CheckBubbleCollision(&game->grid, &game->player.bubble)) {
+                int row, col;
+                PlaceBubble(&game->player.bubble, &game->grid, &row, &col);
+                int popped = PopConnectedBubbles(&game->grid, row, col);
+                if (popped > 0) {
+                    game->score += popped * 10;  // Her patlatılan top için 10 puan ekle
+                    printf("Patlatılan top sayısı: %d, Yeni skor: %d\n", popped, game->score);
+                }
+                NextBubble(&game->player, &game->grid);
+                game->moves++;
+                ResetExplosionState();
             }
+        }
 
-            // Havada kalan balonları düşür
-            int dropped = DropFloatingBubbles(&game->grid);
-            if (dropped > 0) {
-                game->score += dropped * 5;
-            }
-
-            // Yeni baloncuk hazırla
-            game->player.shooting = 0;
-            NextBubble(&game->player, &game->grid);
-
-            // Oyun sonu kontrolü
-            if (IsGameOver(&game->grid)) {
-                game->gameOver = true;
-            }
-            // Hamle sınırı kontrolü
-            else if (game->moves >= MAX_MOVES) {
-                game->gameOver = true;
-            }
-
-            // Ekranda top kalmadıysa ve hamle sayısı bitmediyse bonus puan ekle
-            if (!IsGameOver(&game->grid) && game->moves < MAX_MOVES) {
-                bool hasBubbles = false;
-                for (int r = 0; r < GRID_ROWS; r++) {
-                    for (int c = 0; c < GRID_COLS; c++) {
-                        if (game->grid.bubbles[r][c].active) {
-                            hasBubbles = true;
-                            break;
-                        }
+        // Oyun sonu kontrolü
+        if (IsGameOver(&game->grid) || game->moves >= MAX_MOVES) {
+            game->gameOver = true;
+        }
+        else {
+            // Tüm toplar patlatıldı mı kontrol et
+            bool hasBubbles = false;
+            for (int r = 0; r < GRID_ROWS; r++) {
+                for (int c = 0; c < GRID_COLS; c++) {
+                    if (game->grid.bubbles[r][c].active) {
+                        hasBubbles = true;
+                        break;
                     }
-                    if (hasBubbles) break;
                 }
+                if (hasBubbles) break;
+            }
 
-                if (!hasBubbles) {
-                    int remainingBubbles = MAX_MOVES - game->moves;
-                    game->score += remainingBubbles * 50;
-                    game->gameOver = true;
-                }
+            if (!hasBubbles) {
+                int remainingBubbles = MAX_MOVES - game->moves;
+                game->score += remainingBubbles * 50;  // Kalan balonlar için 50 puan ekle
+                game->gameOver = true;
             }
         }
     }
@@ -150,12 +95,15 @@ void DrawGame(Game* game) {
     // Baloncuk ızgarasını çiz
     DrawBubbleGrid(&game->grid);
 
+    // Parçacıkları çiz
+    DrawParticles();
+
     // Oyuncuyu çiz
     DrawPlayer(&game->player, &game->grid);
 
     // Skor gösterimi
     char scoreText[32];
-    sprintf(scoreText, "Skor: %d", game->score);
+    sprintf(scoreText, "Score: %d", game->score);
     int textWidth = MeasureText(scoreText, 20);
     DrawText(scoreText, GetScreenWidth() - textWidth - 10, GetScreenHeight() - 30, 20, WHITE);
 
@@ -170,10 +118,17 @@ void DrawGame(Game* game) {
             game->player.bubble.pos.y - 10,
             20, WHITE);
     }
+
+    DrawUI(game);
+
+    // Oyun sonu ekranını çiz
+    if (game->gameOver) {
+        DrawGameOverUI(game->score);
+    }
 }
 
 // Oyunu temizle
 void UnloadGame(Game* game) {
-    // Oyun kaynaklarını temizle
     UnloadBubbleGrid(&game->grid);
+    UnloadPlayer(&game->player);
 }
